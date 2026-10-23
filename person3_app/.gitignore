@@ -1,0 +1,30 @@
+# virtual env
+.venv/
+venv/
+
+# models
+models/*
+*.pth
+*.pt
+!models/
+!models/best_model.pth
+!models/20260428_2028_best_model.pth
+!models/20260428_2028_last_checkpoint.pth
+!models/temperature_scaling.json
+
+# python
+__pycache__/
+*.pyc
+
+# dataset
+data/
+dataset/
+
+# runtime data
+database/*.db
+reports/*.pdf
+logs/*.log
+logs/evaluation/
+static/uploads/*
+static/gradcam/*
+runtime/

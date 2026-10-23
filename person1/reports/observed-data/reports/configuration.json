@@ -1,0 +1,15 @@
+{
+  "clahe_clip_limit": 2.0,
+  "clahe_grid": [
+    8,
+    8
+  ],
+  "glare_rejection_fraction": 0.5,
+  "glare_saturation": 40,
+  "glare_value": 225,
+  "glare_warning_fraction": 0.15,
+  "inpaint_radius": 3.0,
+  "min_dimension": 50,
+  "min_inpaint_fraction": 0.001,
+  "min_skin_pixels": 16
+}

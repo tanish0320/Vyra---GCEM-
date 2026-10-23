@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics | AnemiaVision AI{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/analytics.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="page-wrap">
+        <span class="section-kicker">Population trends</span>
+        <h1><span class="gradient-text">Analytics Dashboard</span></h1>
+        <p>Live screening intelligence across patient volume, detection rate, confidence distribution, and image modality trends.</p>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+        <form method="get" class="analytics-filter reveal">
+            <input class="form-control" type="date" name="start_date" value="{{ filters.start_date }}">
+            <input class="form-control" type="date" name="end_date" value="{{ filters.end_date }}">
+            <button class="btn btn-primary" type="submit"><i data-lucide="calendar-range"></i> Update Range</button>
+        </form>
+
+        <div class="kpi-grid">
+            <article class="kpi-card reveal">
+                <span>Total scans</span>
+                <strong data-count-to="{{ analytics_data.metrics.total_patients }}">0</strong>
+                <canvas class="sparkline" data-sparkline="line"></canvas>
+            </article>
+            <article class="kpi-card reveal">
+                <span>Anemic rate</span>
+                <strong data-count-to="{{ analytics_data.metrics.detection_rate|round|int }}" data-count-suffix="%">0</strong>
+                <canvas class="sparkline" data-sparkline="pie"></canvas>
+            </article>
+            <article class="kpi-card reveal">
+                <span>Avg confidence</span>
+                <strong data-count-to="{{ analytics_data.metrics.average_confidence|round|int }}" data-count-suffix="%">0</strong>
+                <canvas class="sparkline" data-sparkline="confidence"></canvas>
+            </article>
+            <article class="kpi-card reveal">
+                <span>Common age group</span>
+                <strong>{{ analytics_data.metrics.most_common_age_group }}</strong>
+                <canvas class="sparkline" data-sparkline="age"></canvas>
+            </article>
+        </div>
+
+        <div class="analytics-grid">
+            <section class="chart-card reveal">
+                <div class="section-header compact">
+                    <div>
+                        <span class="section-kicker">Ratio</span>
+                        <h2>Anemic vs Non-Anemic</h2>
+                    </div>
+                </div>
+                <div class="chart-shell is-loading" data-chart-shell>
+                    <div class="chart-skeleton" data-chart-skeleton></div>
+                    <canvas class="analytics-chart" id="pieChart"></canvas>
+                </div>
+            </section>
+
+            <section class="chart-card reveal">
+                <div class="section-header compact">
+                    <div>
+                        <span class="section-kicker">Trend</span>
+                        <h2>Scans Over Time</h2>
+                    </div>
+                </div>
+                <div class="chart-shell is-loading" data-chart-shell>
+                    <div class="chart-skeleton" data-chart-skeleton></div>
+                    <canvas class="analytics-chart" id="lineChart"></canvas>
+                </div>
+            </section>
+
+            <section class="chart-card reveal">
+                <div class="section-header compact">
+                    <div>
+                        <span class="section-kicker">Confidence</span>
+                        <h2>Confidence Distribution</h2>
+                    </div>
+                </div>
+                <div class="chart-shell is-loading" data-chart-shell>
+                    <div class="chart-skeleton" data-chart-skeleton></div>
+                    <canvas class="analytics-chart" id="confidenceBarChart"></canvas>
+                </div>
+            </section>
+
+            <section class="chart-card reveal">
+                <div class="section-header compact">
+                    <div>
+                        <span class="section-kicker">Image type</span>
+                        <h2>Screening Breakdown</h2>
+                    </div>
+                </div>
+                <div class="chart-shell is-loading" data-chart-shell>
+                    <div class="chart-skeleton" data-chart-skeleton></div>
+                    <canvas class="analytics-chart" id="imageTypeBarChart"></canvas>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+
+<script id="analyticsPayload" type="application/json">{{ analytics_data|tojson }}</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/analytics.js') }}" defer></script>
+{% endblock %}

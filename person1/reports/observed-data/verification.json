@@ -1,0 +1,12 @@
+{
+  "errors": [],
+  "inventory_images_checked": 5122,
+  "leakage": {
+    "duplicate_group_id_overlap": 0,
+    "nail_patient_independence_verified": false,
+    "passed": true,
+    "patient_id_overlap": 0,
+    "source_group_id_overlap": 0
+  },
+  "passed": true
+}

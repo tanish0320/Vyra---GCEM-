@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Developer | Rahul Patel{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/author.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="author-hero">
+    <div class="page-wrap author-hero-grid">
+        <div class="author-copy reveal">
+            <span class="section-kicker">Developed by</span>
+            <h1><span class="gradient-text">Rahul Patel</span></h1>
+            <p class="author-role">B.Tech Electronics and Communication Engineering student at Indian Institute of Information Technology, Surat.</p>
+            <p>
+                I build practical AI and full-stack systems that can move from a lab idea into a usable product.
+                AnemiaVision AI is my attempt to make low-cost, explainable medical screening more accessible for
+                clinics, outreach camps, and resource-constrained healthcare settings.
+            </p>
+            <div class="author-actions">
+                <a class="btn btn-primary btn-lg" href="mailto:rahulpatelanuppur@gmail.com"><i data-lucide="mail"></i> Email Me</a>
+                <a class="btn btn-outline-secondary btn-lg" href="tel:+916263455619"><i data-lucide="phone"></i> Call</a>
+                <a class="btn btn-outline-secondary btn-lg" href="https://github.com/RAHULPATEL2002" target="_blank" rel="noopener"><i data-lucide="github"></i> GitHub</a>
+            </div>
+        </div>
+
+        <aside class="author-card reveal">
+            <div class="author-avatar" aria-hidden="true">RP</div>
+            <h2>Rahul Patel</h2>
+            <p>Software Engineering Intern at IIT Gandhinagar and AI/full-stack developer focused on healthcare, data science, and production web systems.</p>
+            <div class="contact-list">
+                <a href="tel:+916263455619"><i data-lucide="phone"></i> +91 6263455619</a>
+                <a href="mailto:rahulpatelanuppur@gmail.com"><i data-lucide="mail"></i> rahulpatelanuppur@gmail.com</a>
+                <a href="https://www.linkedin.com/in/rahul-patel-27b552250/" target="_blank" rel="noopener"><i data-lucide="linkedin"></i> LinkedIn</a>
+                <a href="https://github.com/RAHULPATEL2002" target="_blank" rel="noopener"><i data-lucide="github"></i> GitHub</a>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="section">
+    <div class="page-wrap">
+        <div class="author-metrics">
+            <article class="metric-card reveal"><strong>8.15</strong><span>CGPA at IIIT Surat</span></article>
+            <article class="metric-card reveal"><strong>900+</strong><span>DSA problems solved</span></article>
+            <article class="metric-card reveal"><strong>99.7%</strong><span>AnemiaVision AI accuracy</span></article>
+            <article class="metric-card reveal"><strong>5</strong><span>Research papers published</span></article>
+        </div>
+    </div>
+</section>
+
+<section class="section author-section">
+    <div class="page-wrap author-two-col">
+        <article class="surface-card reveal">
+            <span class="section-kicker">Who I am</span>
+            <h2>Engineer, builder, and healthcare-AI explorer.</h2>
+            <p>
+                I am a final-year ECE undergraduate at IIIT Surat with hands-on work across Python, Flask,
+                Django, PyTorch, TensorFlow, SQL, Docker, Linux, and data science. My work combines model
+                development, backend architecture, UI design, and deployment thinking.
+            </p>
+            <p>
+                I have worked on facility management systems at IIT Gandhinagar, employee attrition prediction,
+                non-invasive blood group detection, and this anemia screening platform.
+            </p>
+        </article>
+
+        <article class="surface-card reveal">
+            <span class="section-kicker">Vision</span>
+            <h2>AI should be useful, understandable, and reachable.</h2>
+            <p>
+                My vision for AnemiaVision AI is to support early screening where lab access is delayed or limited.
+                The product is designed around fast image capture, clear confidence, Grad-CAM visual explanation,
+                patient history, analytics, and PDF reporting.
+            </p>
+            <p>
+                This is not a replacement for clinical testing. It is a decision-support layer that can help
+                people identify risk earlier and seek confirmatory medical care sooner.
+            </p>
+        </article>
+    </div>
+</section>
+
+<section class="section">
+    <div class="page-wrap">
+        <span class="section-kicker reveal">Selected work</span>
+        <h2 class="section-title reveal">Projects and research</h2>
+        <div class="author-project-grid">
+            <article class="project-card reveal">
+                <i data-lucide="droplets"></i>
+                <h3>Blood Group Detection Using Hand Images</h3>
+                <p>CNN-based non-invasive blood group classification using infrared and spectroscopic hand images, deployed through Flask.</p>
+                <a href="https://github.com/RAHULPATEL2002/blood-group-detection" target="_blank" rel="noopener">View GitHub</a>
+            </article>
+            <article class="project-card reveal">
+                <i data-lucide="heart-pulse"></i>
+                <h3>AnemiaVision AI</h3>
+                <p>Mobile-first anemia screening using EfficientNet-B3, Grad-CAM explainability, analytics, history, and PDF reports.</p>
+                <a href="https://github.com/RAHULPATEL2002/anemia-detection" target="_blank" rel="noopener">View GitHub</a>
+            </article>
+            <article class="project-card reveal">
+                <i data-lucide="file-search"></i>
+                <h3>Research Publications</h3>
+                <p>Published work across medical imaging, synthetic data, synchronization mechanisms, and institutional Django systems.</p>
+                <a href="#research-publications">View all papers</a>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="section author-section" id="research-publications">
+    <div class="page-wrap">
+        <span class="section-kicker reveal">Published research</span>
+        <h2 class="section-title reveal">Research papers</h2>
+        <div class="publication-list">
+            <a class="publication-card reveal" href="https://ijirt.org/article?manuscript=189616" target="_blank" rel="noopener">
+                <span>IJIRT</span>
+                <strong>Blood Group Detection Using Infrared Hand Images and Machine Learning</strong>
+                <i data-lucide="external-link"></i>
+            </a>
+            <a class="publication-card reveal" href="https://ijirt.org/article?manuscript=190112" target="_blank" rel="noopener">
+                <span>IJIRT</span>
+                <strong>Synthetic Image Generation for Mitigating Overfitting in Deep Learning under Data-Scarce Conditions</strong>
+                <i data-lucide="external-link"></i>
+            </a>
+            <a class="publication-card reveal" href="https://ijirt.org/article?manuscript=190334" target="_blank" rel="noopener">
+                <span>IJIRT</span>
+                <strong>Delegated Token Semaphore (DTS): A Fair and Scalable Synchronization Mechanism</strong>
+                <i data-lucide="external-link"></i>
+            </a>
+            <a class="publication-card reveal" href="https://arxiv.org/abs/2604.03808" target="_blank" rel="noopener">
+                <span>arXiv</span>
+                <strong>WebView-Based Institutional Systems using Django and HTMX</strong>
+                <i data-lucide="external-link"></i>
+            </a>
+            <a class="publication-card reveal" href="https://arxiv.org/abs/2604.22964" target="_blank" rel="noopener">
+                <span>arXiv</span>
+                <strong>AnemiaVision: Non-Invasive Anemia Detection via Smartphone Imagery Using EfficientNet-B3</strong>
+                <i data-lucide="external-link"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="section author-section">
+    <div class="page-wrap">
+        <div class="profile-links reveal">
+            <a href="https://www.geeksforgeeks.org/user/rahulpateliiit/" target="_blank" rel="noopener">GeeksforGeeks</a>
+            <a href="https://leetcode.com/u/rahulpatelanuppur/" target="_blank" rel="noopener">LeetCode</a>
+            <a href="https://www.codechef.com/users/rahulpateliiit" target="_blank" rel="noopener">CodeChef</a>
+            <a href="https://www.linkedin.com/in/rahul-patel-27b552250/" target="_blank" rel="noopener">LinkedIn</a>
+            <a href="https://github.com/RAHULPATEL2002" target="_blank" rel="noopener">GitHub</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

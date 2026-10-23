@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Result | AnemiaVision AI{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/result.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set is_safe = not scan.is_anemic %}
+{% set is_amber = scan.risk_level in ['Low-Medium Risk', 'Uncertain', 'Possible Anemia', 'Medium Risk'] %}
+{% set warnings_list = scan.quality_warnings if scan.quality_warnings else (quality.warnings if quality and quality.warnings else []) %}
+
+<section class="result-hero {% if scan.is_mock %}is-amber{% elif is_safe %}is-safe{% elif is_amber %}is-amber{% else %}is-danger{% endif %}">
+    <div class="page-wrap result-hero-inner">
+        <div class="result-badge-row">
+            <span class="scan-id-badge">{{ scan.public_scan_id }}</span>
+            {% if scan.is_mock %}
+                <span class="state-badge state-badge--mock">DEMO / MOCK RESULT · NOT PERSISTED</span>
+            {% else %}
+                <span class="state-badge state-badge--real">REAL INFERENCE RECORD</span>
+            {% endif %}
+        </div>
+        <div class="result-symbol" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52"></circle>
+                {% if is_safe and not scan.is_mock %}
+                    <path d="M36 62l16 16 34-40"></path>
+                {% else %}
+                    <path d="M60 28v42M60 86v2"></path>
+                {% endif %}
+            </svg>
+        </div>
+        <span class="section-kicker">AI screening verdict</span>
+        <h1>{{ scan.verdict_title }}</h1>
+        <p>{{ scan.risk_explanation }}</p>
+        <p class="result-disclaimer-banner" role="note">{{ disclaimer_text }}</p>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+        {% if scan.is_mock %}
+        <div class="mock-warning-banner" role="alert">
+            <i data-lucide="alert-triangle"></i>
+            <div>
+                <strong>Development Demo / Test Output — Not a Real Clinical Prediction</strong>
+                <p>This result was generated in explicit development mock mode (`use_mock=true`) to preview the CHW interface. It is never stored in patient history and must not be used for patient care.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Three-Panel Results Experience (Desktop: 3 columns, Mobile: stacked vertically) -->
+        <div class="three-panel-results-grid" role="region" aria-label="Three-panel screening results">
+            <!-- Panel 1: Image and Quality Panel -->
+            <article class="result-panel surface-card reveal" id="panelImageQuality" aria-labelledby="panelImageQualityHeading">
+                <div class="result-panel-header">
+                    <span class="section-kicker">Panel 1 · Acquisition &amp; Optical Quality</span>
+                    <h2 id="panelImageQualityHeading">Image &amp; Quality</h2>
+                </div>
+
+                <div class="panel-modality-bar">
+                    <div>
+                        <span class="meta-label">Selected Modality</span>
+                        <strong class="modality-badge">{{ (scan.anatomical_modality or scan.image_type or "conjunctiva")|capitalize }}</strong>
+                    </div>
+                    <div>
+                        <span class="meta-label">Quality Gate</span>
+                        <strong class="quality-badge {% if quality and quality.passed %}is-good{% else %}is-warn{% endif %}">
+                            {{ quality.image_quality if quality and quality.image_quality else "Validated" }}
+                        </strong>
+                    </div>
+                </div>
+
+                <figure class="result-figure">
+                    {% if scan.image_url %}
+                        <img src="{{ scan.image_url }}" alt="Uploaded {{ scan.anatomical_modality or scan.image_type }} scan image" class="result-image" loading="lazy">
+                    {% else %}
+                        <div class="missing-media-box">Uploaded image preview unavailable</div>
+                    {% endif %}
+                    <figcaption>Uploaded Original Image ({{ scan.image_type or scan.anatomical_modality or "Conjunctiva" }})</figcaption>
+                </figure>
+
+                {% if scan.normalized_image_url %}
+                <figure class="result-figure normalized-figure">
+                    <img src="{{ scan.normalized_image_url }}" alt="Optically normalized ROI image" class="result-image" loading="lazy">
+                    <figcaption>Normalized ROI Image (Person 1 Pipeline)</figcaption>
+                </figure>
+                {% else %}
+                <div class="honest-unavailable-note" id="normalizationStatusNote">
+                    <i data-lucide="sliders"></i>
+                    <span><strong>Normalized ROI image unavailable:</strong> Person 1 optical normalization was not applied to this scan.</span>
+                </div>
+                {% endif %}
+
+                {% if scan.ita_angle is not none or scan.ita_category or scan.glare_fraction is not none %}
+                <dl class="optical-metrics-list" aria-label="Optical normalization metrics">
+                    {% if scan.ita_angle is not none %}
+                    <div>
+                        <dt>ITA° Angle</dt>
+                        <dd class="mono">{{ "%.1f"|format(scan.ita_angle) }}°</dd>
+                    </div>
+                    {% endif %}
+                    {% if scan.ita_category %}
+                    <div>
+                        <dt>Skin Tone Category</dt>
+                        <dd>{{ scan.ita_category }}</dd>
+                    </div>
+                    {% endif %}
+                    {% if scan.glare_fraction is not none %}
+                    <div>
+                        <dt>Glare Fraction</dt>
+                        <dd class="mono">{{ "%.1f"|format(scan.glare_fraction * 100) }}%</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+                {% endif %}
+
+                <div class="quality-warnings-block">
+                    <span class="meta-label">Quality Assessment &amp; Warnings</span>
+                    {% if warnings_list %}
+                        <ul class="warning-list" aria-label="Image quality warnings">
+                            {% for warn in warnings_list %}
+                                <li><i data-lucide="alert-circle"></i> <span>{{ warn }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="quality-clear-note">No blur, exposure, or glare warnings were flagged for this image.</p>
+                    {% endif %}
+                </div>
+            </article>
+
+            <!-- Panel 2: AI Results Panel -->
+            <article class="result-panel surface-card reveal" id="panelAiResults" aria-labelledby="panelAiResultsHeading">
+                <div class="result-panel-header">
+                    <span class="section-kicker">Panel 2 · Screening Output</span>
+                    <h2 id="panelAiResultsHeading">AI Screening Results</h2>
+                </div>
+
+                <div class="ai-verdict-summary {% if is_safe %}is-safe{% elif is_amber %}is-amber{% else %}is-danger{% endif %}">
+                    <div>
+                        <span class="meta-label">Predicted Class</span>
+                        <strong class="predicted-class-value">{{ scan.prediction }}</strong>
+                        <span class="predicted-class-token mono">({{ scan.predicted_class or "unknown" }})</span>
+                    </div>
+                    <div class="probability-readout">
+                        <span class="meta-label">Anemia Probability</span>
+                        <strong class="mono">{{ "%.1f"|format((scan.anemic_probability or 0.0) * 100) }}%</strong>
+                    </div>
+                </div>
+
+                <div class="confidence-meter-block">
+                    <div class="confidence-meter-header">
+                        <span>Model Confidence ({{ scan.calibration_status or "uncalibrated" }})</span>
+                        <strong class="mono">{{ "%.1f"|format(scan.confidence_percent) }}%</strong>
+                    </div>
+                    <div class="confidence-meter large">
+                        <div class="confidence-fill" data-progress="{{ scan.confidence_percent }}"></div>
+                    </div>
+                    <div class="probability-breakdown mono">
+                        <span>Anemic: {{ "%.1f"|format((scan.anemic_probability or 0.0) * 100) }}%</span>
+                        <span>Non-Anemic: {{ "%.1f"|format((scan.non_anemic_probability or 0.0) * 100) }}%</span>
+                    </div>
+                </div>
+
+                <div class="hb-estimate-box" id="hbEstimateBox">
+                    <span class="meta-label">Hemoglobin (Hb) Estimation</span>
+                    {% if scan.hb_regression_available and scan.hb_estimate_g_dl is not none %}
+                        <strong class="hb-numeric-value mono">{{ "%.2f"|format(scan.hb_estimate_g_dl) }} g/dL</strong>
+                        <span class="hb-status-tag is-validated">Validated Regression Output</span>
+                    {% else %}
+                        <p class="hb-unavailable-message">{{ scan.hemoglobin_estimate }}</p>
+                        <span class="hb-status-tag is-unavailable">Regression Status: {{ scan.regression_status or "unavailable" }}</span>
+                    {% endif %}
+                </div>
+
+                <dl class="patient-list ai-metadata-list">
+                    <div>
+                        <dt>Model Version</dt>
+                        <dd class="mono">{{ scan.model_version or "unknown" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Calibration Status</dt>
+                        <dd>{{ scan.calibration_status or "uncalibrated" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Risk Classification</dt>
+                        <dd>{{ scan.risk_level or "Uncertain" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Patient</dt>
+                        <dd>{{ scan.patient_name }} ({{ scan.age if scan.age is not none else "N/A" }} yrs · {{ scan.gender or "N/A" }})</dd>
+                    </div>
+                    {% if scan.phone %}
+                    <div>
+                        <dt>Contact Phone</dt>
+                        <dd>{{ scan.phone }}</dd>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <dt>Scan Timestamp</dt>
+                        <dd>{{ scan.created_at.strftime("%d %b %Y, %H:%M UTC") }}</dd>
+                    </div>
+                </dl>
+            </article>
+
+            <!-- Panel 3: Explainability Panel -->
+            <article class="result-panel surface-card reveal" id="panelExplainability" aria-labelledby="panelExplainabilityHeading">
+                <div class="result-panel-header">
+                    <span class="section-kicker">Panel 3 · Model Attribution</span>
+                    <h2 id="panelExplainabilityHeading">Explainability (Grad-CAM)</h2>
+                </div>
+
+                {% if scan.gradcam_url %}
+                <p class="panel-intro">Grad-CAM highlights the regions of the {{ scan.anatomical_modality or "uploaded" }} image that most influenced the model's screening output.</p>
+                <figure class="result-figure comparison-shell">
+                    <div class="comparison">
+                        <img src="{{ scan.image_url }}" alt="Original scan base layer" class="comparison-base" loading="lazy">
+                        <img src="{{ scan.gradcam_url }}" alt="Grad-CAM heatmap overlay" class="comparison-overlay" loading="lazy">
+                        <input type="range" min="0" max="100" value="55" class="comparison-slider" aria-label="Compare original and Grad-CAM images">
+                    </div>
+                    <figcaption>Slide to compare Original Image vs. Real Grad-CAM Overlay</figcaption>
+                </figure>
+                {% else %}
+                <div class="explainability-unavailable-card" id="explainabilityUnavailableState" role="status">
+                    <div class="unavailable-icon" aria-hidden="true">
+                        <i data-lucide="eye-off"></i>
+                    </div>
+                    <h3>Visual explanation unavailable</h3>
+                    <p>This prediction did not produce a verified Grad-CAM attribution map. VYRA never generates synthetic or placeholder heatmaps.</p>
+                </div>
+                {% endif %}
+            </article>
+        </div>
+
+        <!-- Dedicated CHW Referral & Follow-Up Card (Separate from Model Inference Output) -->
+        <section class="referral-workflow-card surface-card reveal" id="referralWorkflowCard" aria-labelledby="referralCardHeading">
+            <div class="referral-card-header">
+                <div>
+                    <span class="section-kicker">CHW Decision Support · Separate from AI Inference</span>
+                    <h2 id="referralCardHeading">Provisional Referral &amp; Follow-Up Guidance</h2>
+                </div>
+                <span class="provisional-pill">Provisional Workflow Rule · Not a Diagnosis</span>
+            </div>
+
+            {% if scan.triage %}
+                {% set tier_lower = (scan.triage.level or 'yellow')|lower %}
+                <div class="referral-triage-banner is-{{ tier_lower }}">
+                    <div class="triage-tier-badge">
+                        <span class="triage-dot"></span>
+                        <strong>{{ scan.triage.label }}</strong>
+                    </div>
+                    <p class="triage-action-text"><strong>Recommended CHW Action:</strong> {{ scan.triage.action }}</p>
+                    {% if scan.triage.reasons %}
+                        <ul class="advice-list" style="margin-top:0.35rem">
+                            {% for reason in scan.triage.reasons %}
+                                <li>{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    <p class="triage-provisional-note">{{ scan.triage.disclaimer }}</p>
+                </div>
+            {% else %}
+                <div class="referral-triage-banner is-incomplete">
+                    <div class="triage-tier-badge">
+                        <span class="triage-dot"></span>
+                        <strong>Provisional Triage: Incomplete · Clinical Review Required</strong>
+                    </div>
+                    <p class="triage-action-text">
+                        <strong>Recommended CHW Action:</strong> Automatic <code>GREEN</code> (Routine Monitoring) clearance is withheld because a validated continuous Hb estimate (&ge; 12.0 g/dL) is unavailable for this scan. Evaluate patient symptoms and refer to a clinic for a venous Complete Blood Count (CBC) if pallor, fatigue, or clinical concern is present.
+                    </p>
+                    <p class="triage-provisional-note">Provisional screening guidance only; never substitutes for clinical judgment or laboratory CBC testing.</p>
+                </div>
+            {% endif %}
+
+            <div class="referral-advice-grid">
+                <div>
+                    <h3>Approved CHW Next Steps</h3>
+                    <ul class="advice-list">
+                        {% for item in scan.medical_advice %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="referral-disclaimer-box">
+                    <h3>Mandatory Clinical Verification Notice</h3>
+                    <p>{{ disclaimer_text }}</p>
+                    {% if scan.notes %}
+                        <div class="patient-notes-box">
+                            <strong>Recorded Field Notes:</strong>
+                            <p>{{ scan.notes }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="action-row result-actions reveal">
+            {% if persisted and pdf_url %}
+                <a href="{{ pdf_url }}" class="btn btn-primary btn-lg" id="downloadPdfButton"><i data-lucide="download"></i> Download PDF Report</a>
+            {% else %}
+                <button type="button" class="btn btn-primary btn-lg" id="downloadPdfButton" disabled aria-disabled="true"><i data-lucide="download"></i> PDF Unavailable (Unpersisted / Demo Scan)</button>
+            {% endif %}
+            <a href="{{ url_for('scan_page') }}" class="btn btn-outline-secondary btn-lg"><i data-lucide="refresh-cw"></i> New Scan</a>
+            <a href="{{ url_for('history_page') }}" class="btn btn-outline-secondary btn-lg"><i data-lucide="clipboard-list"></i> View History</a>
+            <button type="button" class="btn btn-outline-secondary btn-lg" id="printReportButton"><i data-lucide="printer"></i> Print</button>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script defer>
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".comparison").forEach((comparison) => {
+        const slider = comparison.querySelector(".comparison-slider");
+        const overlay = comparison.querySelector(".comparison-overlay");
+        const update = () => {
+            if (overlay) overlay.style.clipPath = `inset(0 ${100 - Number(slider.value)}% 0 0)`;
+        };
+        slider?.addEventListener("input", update);
+        update();
+    });
+});
+</script>
+{% endblock %}

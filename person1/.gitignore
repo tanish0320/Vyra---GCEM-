@@ -1,0 +1,13 @@
+.venv/
+data/
+dist/
+build/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.zip
+*.rar
+*.png
+*.jpg
+*.jpeg
+

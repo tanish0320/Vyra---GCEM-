@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}AnemiaVision AI | Medical AI Screening{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/index.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="home-hero" id="home">
+    <div class="page-wrap hero-grid">
+        <div class="hero-copy reveal">
+            <span class="hero-tag"><i data-lucide="sparkles"></i> Powered by EfficientNet-B3 AI</span>
+            <h1><span class="gradient-text">Detect Anemia in</span><br>Seconds, Not Days</h1>
+            <p>Hospital-grade screening from your smartphone. Upload a conjunctiva or fingernail photo for instant AI analysis, explainable heatmaps, and patient-ready reports.</p>
+            <div class="hero-actions">
+                <a href="{{ url_for('scan_page') }}" class="btn btn-primary btn-lg hero-cta">
+                    <span>Start Free Scan</span>
+                    <i data-lucide="arrow-right"></i>
+                </a>
+                <a href="#how-it-works" class="btn btn-outline-secondary btn-lg">
+                    <i data-lucide="play-circle"></i>
+                    <span>Watch Demo</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-visual reveal" aria-hidden="true">
+            <svg class="dna-helix" viewBox="0 0 260 360">
+                <path d="M70 20c120 82 120 238 0 320M190 20C70 102 70 258 190 340" fill="none" stroke="url(#heroDna)" stroke-width="7" stroke-linecap="round"/>
+                {% for y in [48, 78, 108, 138, 168, 198, 228, 258, 288, 318] %}
+                    <line x1="82" y1="{{ y }}" x2="178" y2="{{ y + (loop.index0 % 2) * 8 - 4 }}" stroke="rgba(248,250,252,.48)" stroke-width="4" stroke-linecap="round"/>
+                {% endfor %}
+                <defs>
+                    <linearGradient id="heroDna" x1="0" y1="0" x2="260" y2="360">
+                        <stop stop-color="#6366f1"/>
+                        <stop offset=".55" stop-color="#8b5cf6"/>
+                        <stop offset="1" stop-color="#06b6d4"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div class="scan-orbit-card orbit-one">
+                <i data-lucide="activity"></i>
+                <strong>{% if performance.accuracy_badge is not none %}{{ "%.1f"|format(performance.accuracy_badge) }}%{% else %}Unavailable{% endif %}</strong>
+                <span>{{ performance.source }}</span>
+            </div>
+            <div class="scan-orbit-card orbit-two">
+                <i data-lucide="scan-line"></i>
+                <strong>{{ home_stats.total_scans }}</strong>
+                <span>real scans tracked</span>
+            </div>
+        </div>
+
+        <div class="hero-stat-row reveal">
+            <article class="hero-stat" style="--delay:0s">
+                <strong>{% if performance.accuracy_badge is not none %}{{ "%.1f"|format(performance.accuracy_badge) }}%{% else %}Unavailable{% endif %}</strong>
+                <span>Accuracy</span>
+            </article>
+            <article class="hero-stat" style="--delay:.5s">
+                <strong>&lt; 3s</strong>
+                <span>Analysis</span>
+            </article>
+            <article class="hero-stat" style="--delay:1s">
+                <strong>Grad-CAM</strong>
+                <span>Visual AI</span>
+            </article>
+            <article class="hero-stat" style="--delay:1.5s">
+                <strong>PDF</strong>
+                <span>Reports</span>
+            </article>
+        </div>
+    </div>
+    <div class="medical-ticker" aria-hidden="true">
+        <div class="ticker-track">
+            {% for i in range(12) %}
+                <span class="ticker-thumb"><i data-lucide="{{ 'eye' if i % 2 == 0 else 'fingerprint' }}"></i></span>
+            {% endfor %}
+            {% for i in range(12) %}
+                <span class="ticker-thumb"><i data-lucide="{{ 'eye' if i % 2 == 0 else 'fingerprint' }}"></i></span>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section" id="how-it-works">
+    <div class="page-wrap">
+        <span class="section-kicker reveal">Clinical workflow</span>
+        <h2 class="section-title reveal">Three steps from image to insight.</h2>
+        <div class="timeline steps-grid">
+            <article class="step-card reveal">
+                <span class="step-number">1</span>
+                <i data-lucide="upload-cloud"></i>
+                <h3>Upload Photo</h3>
+                <p>Use camera capture or upload a smartphone image of conjunctiva or fingernail.</p>
+            </article>
+            <article class="step-card reveal">
+                <span class="step-number">2</span>
+                <i data-lucide="brain-circuit"></i>
+                <h3>AI Analysis</h3>
+                <p>EfficientNet-B3 evaluates visual markers and calibrates prediction confidence.</p>
+            </article>
+            <article class="step-card reveal">
+                <span class="step-number">3</span>
+                <i data-lucide="file-heart"></i>
+                <h3>Get Results</h3>
+                <p>Review risk level, Grad-CAM focus, medical guidance, history, and PDF export.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="section scan-feature" id="scan">
+    <div class="page-wrap">
+        <div class="section-header reveal">
+            <div>
+                <span class="section-kicker">Main feature</span>
+                <h2 class="section-title">Ready for a screening?</h2>
+                <p class="section-copy">Open the secure scan workflow with camera capture, drag-and-drop upload, patient details, image quality hints, and live model readiness.</p>
+            </div>
+            <a href="{{ url_for('scan_page') }}" class="btn btn-primary btn-lg">
+                <i data-lucide="microscope"></i>
+                Analyze Now
+            </a>
+        </div>
+        <div class="scan-preview-shell reveal">
+            <div class="scan-preview-drop">
+                <i data-lucide="cloud-upload"></i>
+                <strong>Drag, capture, preview</strong>
+                <span>Conjunctiva or fingernail image</span>
+            </div>
+            <div class="scan-preview-form">
+                <span class="fake-label"></span>
+                <span class="fake-input"></span>
+                <span class="fake-input small"></span>
+                <span class="fake-input"></span>
+                <a href="{{ url_for('scan_page') }}" class="btn btn-primary">Start scan <i data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="page-wrap">
+        <span class="section-kicker reveal">Platform features</span>
+        <h2 class="section-title reveal">Built like a medical AI product.</h2>
+        <div class="features-grid">
+            <article class="feature-card reveal"><span><i data-lucide="brain"></i></span><h3>EfficientNet-B3 Deep Learning</h3><p>Transfer learning pipeline tuned for anemia screening imagery.</p></article>
+            <article class="feature-card reveal"><span><i data-lucide="flame"></i></span><h3>Grad-CAM Explainability</h3><p>Visual heatmaps show the image region driving the prediction.</p></article>
+            <article class="feature-card reveal"><span><i data-lucide="file-text"></i></span><h3>PDF Medical Reports</h3><p>Export patient-ready reports for clinic records and referrals.</p></article>
+            <article class="feature-card reveal"><span><i data-lucide="chart-no-axes-column"></i></span><h3>Analytics Dashboard</h3><p>Track detection rate, scan volume, confidence, and patient trends.</p></article>
+            <article class="feature-card reveal"><span><i data-lucide="smartphone"></i></span><h3>Mobile Camera Capture</h3><p>Rear-camera workflow for outreach camps and bedside screening.</p></article>
+            <article class="feature-card reveal"><span><i data-lucide="shield-check"></i></span><h3>Rate-Limited & Secure</h3><p>Prediction endpoints include abuse protection and safe validation.</p></article>
+        </div>
+    </div>
+</section>
+
+<section class="section stats-band">
+    <div class="page-wrap stats-grid">
+        <article class="stat-card reveal"><strong data-count-to="{{ home_stats.total_scans }}">{{ home_stats.total_scans }}</strong><span>Scans Analyzed</span></article>
+        <article class="stat-card reveal"><strong>&lt; 3s</strong><span>Detection Time</span></article>
+        <article class="stat-card reveal">{% if performance.accuracy_badge is not none %}<strong data-count-to="{{ performance.accuracy_badge|round|int }}" data-count-suffix="%">{{ "%.1f"|format(performance.accuracy_badge) }}%</strong>{% else %}<strong>Unavailable</strong>{% endif %}<span>Accuracy</span></article>
+        <article class="stat-card reveal"><strong>2</strong><span>Supported Modalities</span></article>
+    </div>
+</section>
+{% endblock %}

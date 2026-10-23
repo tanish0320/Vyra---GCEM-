@@ -1,0 +1,60 @@
+{
+  "all_source_assets_verified": 5122,
+  "console_entry_point_passed": true,
+  "consumer_example_passed": true,
+  "core_source_sha256": {
+    "__init__.py": "b64f08d36265f4a4f80217b73c617dbecd674a6beae7c4f7da6e1fc10cd0ad53",
+    "__main__.py": "76fa916e93e0ae1a6c1bb51dcc0bcf289c014e9f760a47165f8a84401ccf41d7",
+    "archives.py": "5aeabc828c1e7874cc80a55faa7e34de0b13ac64178860bc29e5f239e000f706",
+    "artifacts.py": "ab298d908faef5d1ba8fdbc81398a57ec32ee1bb5a9f9af9d5e9aaf183bc6475",
+    "audit.py": "6f07418dca984a94fc49854934cbec09a49c83c1e7e37807f87011e329320fb2",
+    "cli.py": "60ffb1142ebaac26b4ac49a6a1b08db39208ed21d5763a7f78950ef2341364c0",
+    "config.py": "9716d505b1a01e1c9eac27775ef316a7d8e559b13e65d4eb202c8ad8e25f5edb",
+    "datasets.py": "8fa227481b85a999d8d23133bf6b2748401b9af1552134e757844fef7fa56b38",
+    "features.py": "cb3641c37e2eb73b887a7736c70e7cf8d4c2667611d6e633bee2290610a2bbac",
+    "image_io.py": "b6eb529675cac5559abcc9f9ecb4d4070ba8628f5b8c5a7fced00b1b78d18adc",
+    "normalization.py": "8aab6f45d61f2ea4baa3717e24d843236350dc1750bccf376d92175bf3d49427",
+    "prepared.py": "20a5c194432393921aa800307abeac8cc56fca7ce5b466c911a268c035fb47fa"
+  },
+  "dependency_check_passed": true,
+  "dependency_file_sha256": "44a2f90fbd23a781f6e8b07e5ddc571a55ad8c96fe6ca209f07a3e1029fcee6c",
+  "github_ci": {
+    "configured": true,
+    "executed_remotely": false,
+    "python_versions": [
+      "3.11",
+      "3.14"
+    ]
+  },
+  "is_clinical_or_model_performance_validation": false,
+  "original_person2_adapter_unchanged": true,
+  "passed": true,
+  "person2_reference_sha256": "e5d0db9724822bd2a21f931ca3c2ca368ab4889014c10097f08e2b0ab02f4e67",
+  "preprocessing_fingerprint": "4e395393a4f61180bcdcb843cf5eabe826a241d9f698d785d2d6465cc98cbea2",
+  "preprocessing_version": "1.0.0",
+  "real_samples_recomputed": 1556,
+  "runtime": {
+    "Pillow": "13.0.0",
+    "libarchive-c": "5.3",
+    "numpy": "2.5.4",
+    "opencv-python-headless": "5.0.0.93",
+    "openpyxl": "3.1.5",
+    "platform": "Linux",
+    "python": "3.14.6",
+    "scipy": "1.18.1"
+  },
+  "source_archive_hashes_unchanged": true,
+  "tests": {
+    "errors": 0,
+    "failures": 0,
+    "local_source_tests_passed": true,
+    "skipped": 0,
+    "tests": 65,
+    "tests_run_outside_checkout": true,
+    "wheel_loaded_from_isolated_site_packages": true,
+    "wheel_tests_passed": true
+  },
+  "wheel_filename": "vyra_preprocessing-1.0.0-py3-none-any.whl",
+  "wheel_modules_match_source": true,
+  "wheel_sha256": "408746b9b37894ec374dcd505780962c46ecdf2742643ea3bea183f69d474b9f"
+}

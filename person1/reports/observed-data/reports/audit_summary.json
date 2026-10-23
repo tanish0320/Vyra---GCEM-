@@ -1,0 +1,193 @@
+{
+  "datasets": {
+    "eyes_defy_anemia": {
+      "exclusion_counts": {
+        "EXCESSIVE_GLARE": 1,
+        "missing_laboratory_hb": 1,
+        "unresolved_cross_patient_perceptual_candidate": 7
+      },
+      "selected_before_quality_audit": 218,
+      "splits": {
+        "test": {
+          "cohort_counts": {
+            "india": 19,
+            "italy": 22
+          },
+          "duplicate_components": 41,
+          "images": 41,
+          "source_class_counts": {},
+          "source_groups": 41,
+          "verified_patients": 41,
+          "with_lab_hb": 41
+        },
+        "train": {
+          "cohort_counts": {
+            "india": 65,
+            "italy": 82
+          },
+          "duplicate_components": 147,
+          "images": 147,
+          "source_class_counts": {},
+          "source_groups": 147,
+          "verified_patients": 147,
+          "with_lab_hb": 147
+        },
+        "validation": {
+          "cohort_counts": {
+            "india": 9,
+            "italy": 12
+          },
+          "duplicate_components": 21,
+          "images": 21,
+          "source_class_counts": {},
+          "source_groups": 21,
+          "verified_patients": 21,
+          "with_lab_hb": 21
+        }
+      },
+      "status_counts": {
+        "included": 209,
+        "invalid": 1,
+        "quarantined": 7,
+        "unlabeled": 1
+      }
+    },
+    "ghana_fingernails": {
+      "exclusion_counts": {
+        "EXCESSIVE_GLARE": 202,
+        "IMAGE_TOO_SMALL": 1218,
+        "exact_duplicate": 1493
+      },
+      "selected_before_quality_audit": 4260,
+      "splits": {
+        "test": {
+          "cohort_counts": {
+            "ghana": 269
+          },
+          "duplicate_components": 58,
+          "images": 269,
+          "source_class_counts": {
+            "0": 116,
+            "1": 153
+          },
+          "source_groups": 62,
+          "verified_patients": 0,
+          "with_lab_hb": 0
+        },
+        "train": {
+          "cohort_counts": {
+            "ghana": 943
+          },
+          "duplicate_components": 202,
+          "images": 943,
+          "source_class_counts": {
+            "0": 404,
+            "1": 539
+          },
+          "source_groups": 218,
+          "verified_patients": 0,
+          "with_lab_hb": 0
+        },
+        "validation": {
+          "cohort_counts": {
+            "ghana": 135
+          },
+          "duplicate_components": 29,
+          "images": 135,
+          "source_class_counts": {
+            "0": 60,
+            "1": 75
+          },
+          "source_groups": 32,
+          "verified_patients": 0,
+          "with_lab_hb": 0
+        }
+      },
+      "status_counts": {
+        "duplicate": 1493,
+        "included": 1347,
+        "invalid": 1420
+      }
+    }
+  },
+  "duplicate_audit_event_counts": {
+    "byte_exact": 2163,
+    "perceptual_candidate": 31,
+    "pixel_exact": 2177
+  },
+  "eye_patient_count": 218,
+  "eye_patients_with_lab_hb": 217,
+  "feature_names": [
+    "brightness_mean",
+    "brightness_std",
+    "brightness_p10",
+    "brightness_p25",
+    "brightness_p50",
+    "brightness_p75",
+    "brightness_p90",
+    "redness_mean",
+    "redness_std",
+    "white_pallor_ratio",
+    "pink_ratio",
+    "red_mean",
+    "red_std",
+    "green_mean",
+    "green_std",
+    "blue_mean",
+    "blue_std",
+    "red_green_ratio",
+    "red_blue_ratio",
+    "red_blue_difference",
+    "hb_color_proxy_mean",
+    "hb_color_proxy_std",
+    "top_bottom_brightness",
+    "center_global_brightness",
+    "gradient_mean",
+    "gradient_std",
+    "local_std_mean"
+  ],
+  "feature_schema": "person2-color27-v1",
+  "included_image_count": 1556,
+  "inventory_by_dataset": {
+    "eyes_defy_anemia": 862,
+    "ghana_fingernails": 4260
+  },
+  "inventory_image_count": 5122,
+  "leakage": {
+    "duplicate_group_id_overlap": 0,
+    "nail_patient_independence_verified": false,
+    "passed": true,
+    "patient_id_overlap": 0,
+    "source_group_id_overlap": 0
+  },
+  "limitations": [
+    "Nail archive supplies binary class labels but no laboratory Hb or verified patient mapping.",
+    "Nail splits are exploratory source-image-group partitions, not verified patient-level evaluation.",
+    "Perceptual matches are candidates, not proof that two patients are the same person.",
+    "Eye classification labels are not invented; Person 2 owns demographic/clinical label policy.",
+    "ITA requires an explicit surrounding-skin mask; dataset crops normally report Unknown.",
+    "The supplied Person 2 note's counts and prior partitions could not be verified without its CSVs.",
+    "CP-AnemiC is not supplied and is not part of these manifests.",
+    "No model accuracy, clinical performance or Hb prediction is measured by this preprocessing package."
+  ],
+  "perceptual_hash_hamming_radius": 6,
+  "png_profile_crc_repair_required_assets": 187,
+  "preprocessing_fingerprint": "4e395393a4f61180bcdcb843cf5eabe826a241d9f698d785d2d6465cc98cbea2",
+  "preprocessing_version": "1.0.0",
+  "requested_split_ratios": {
+    "test": 0.2,
+    "train": 0.7,
+    "validation": 0.1
+  },
+  "runtime": {
+    "Pillow": "13.0.0",
+    "libarchive-c": "5.3",
+    "numpy": "2.5.4",
+    "opencv-python-headless": "5.0.0.93",
+    "openpyxl": "3.1.5",
+    "platform": "Linux",
+    "python": "3.14.6",
+    "scipy": "1.18.1"
+  },
+  "seed": 42
+}

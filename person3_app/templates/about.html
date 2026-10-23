@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}About | AnemiaVision AI{% endblock %}
+{% block page_title %}About the Technology{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="page-wrap">
+        <span class="section-kicker">Technology overview</span>
+        <h1><span class="gradient-text">About the Technology</span></h1>
+        <p>EfficientNet-B3 visual screening, Grad-CAM explainability, patient records, and production deployment notes.</p>
+    </div>
+</section>
+<div class="page-wrap section-tight">
+<section class="surface-card fade-in-up">
+    <div class="section-header">
+        <div>
+            <span class="eyebrow">Technology overview</span>
+            <h3>How the AI works</h3>
+        </div>
+    </div>
+    <p>
+        AnemiaVision AI uses a pretrained EfficientNet-B3 convolutional network to analyze
+        smartphone images of the eye conjunctiva and fingernail bed. The model looks for
+        color and texture patterns linked to reduced hemoglobin appearance, then produces
+        a screening result with confidence and Grad-CAM explainability.
+    </p>
+
+    <div class="about-grid">
+        <article class="surface-subcard">
+            <h4>EfficientNet-B3 architecture</h4>
+            <svg class="architecture-diagram" viewBox="0 0 620 240" role="img" aria-label="EfficientNet-B3 model diagram">
+                <rect x="20" y="70" width="120" height="90" rx="20" fill="#EAF7F7" stroke="#0A6E6E" stroke-width="3"/>
+                <text x="80" y="115" text-anchor="middle">Input Image</text>
+                <text x="80" y="138" text-anchor="middle">300 × 300</text>
+                <line x1="140" y1="115" x2="210" y2="115" stroke="#0A6E6E" stroke-width="4"/>
+                <rect x="210" y="55" width="130" height="120" rx="20" fill="#F3F9FB" stroke="#0D1B2A" stroke-width="3"/>
+                <text x="275" y="108" text-anchor="middle">EfficientNet-B3</text>
+                <text x="275" y="132" text-anchor="middle">Feature Extractor</text>
+                <line x1="340" y1="115" x2="410" y2="115" stroke="#0A6E6E" stroke-width="4"/>
+                <rect x="410" y="55" width="190" height="120" rx="20" fill="#FFF5F5" stroke="#E63946" stroke-width="3"/>
+                <text x="505" y="95" text-anchor="middle">Custom Dense Head</text>
+                <text x="505" y="118" text-anchor="middle">1536 → 512 → 128 → 2</text>
+                <text x="505" y="141" text-anchor="middle">BN, ReLU, Dropout</text>
+            </svg>
+        </article>
+
+        <article class="surface-subcard">
+            <h4>Dataset information</h4>
+            {% if not dataset_info.available %}
+                <div class="camera-warning" role="alert">
+                    <i data-lucide="database-zap"></i>
+                    <div>
+                        <strong>{{ dataset_info.warning }}</strong>
+                        <p>{{ dataset_info.warning_detail }}</p>
+                    </div>
+                </div>
+            {% endif %}
+            <ul class="about-list">
+                <li>Total images: {{ dataset_info.total_images if dataset_info.total_images is not none else "Unavailable on deployed server" }}</li>
+                <li>Modalities: {{ dataset_info.modalities|join(", ") }}</li>
+                <li>Class labels: {{ dataset_info.class_labels|join(" / ") }}</li>
+                <li>Train split: {{ dataset_info.split_totals.train if dataset_info.split_totals.train is not none else "Unavailable" }}{% if dataset_info.split_totals.train is not none %} images{% endif %}</li>
+                <li>Validation split: {{ dataset_info.split_totals.valid if dataset_info.split_totals.valid is not none else "Unavailable" }}{% if dataset_info.split_totals.valid is not none %} images{% endif %}</li>
+                <li>Test split: {{ dataset_info.split_totals.test if dataset_info.split_totals.test is not none else "Unavailable" }}{% if dataset_info.split_totals.test is not none %} images{% endif %}</li>
+            </ul>
+        </article>
+    </div>
+</section>
+
+<section class="surface-card fade-in-up">
+    <div class="section-header">
+        <div>
+            <span class="eyebrow">Model performance</span>
+            <h3>Accuracy metrics table</h3>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table app-table align-middle">
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                    <th>Source</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Clinical Accuracy</td>
+                    <td>{% if performance.accuracy_badge is not none %}{{ "%.1f"|format(performance.accuracy_badge) }}%{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source }}</td>
+                </tr>
+                <tr>
+                    <td>Sensitivity</td>
+                    <td>{% if performance.sensitivity is not none %}{{ "%.1f"|format(performance.sensitivity * 100) }}%{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source if performance.sensitivity is not none else "No evaluation artifact" }}</td>
+                </tr>
+                <tr>
+                    <td>Specificity</td>
+                    <td>{% if performance.specificity is not none %}{{ "%.1f"|format(performance.specificity * 100) }}%{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source if performance.specificity is not none else "No evaluation artifact" }}</td>
+                </tr>
+                <tr>
+                    <td>AUC-ROC</td>
+                    <td>{% if performance.auc_roc is not none %}{{ "%.2f"|format(performance.auc_roc) }}{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source if performance.auc_roc is not none else "No evaluation artifact" }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="surface-card fade-in-up">
+    <div class="section-header">
+        <div>
+            <span class="eyebrow">Clinical caveats</span>
+            <h3>Limitations and disclaimer</h3>
+        </div>
+    </div>
+    <ul class="advice-list">
+        <li>{{ disclaimer_text }}</li>
+        <li>Lighting, blur, motion, skin tone variation, and camera quality can affect predictions.</li>
+        <li>Continuous hemoglobin readouts are displayed only when backed by a validated regression head.</li>
+        <li>Patients with symptoms or high-risk results should be referred for professional medical review.</li>
+    </ul>
+</section>
+</div>
+{% endblock %}
