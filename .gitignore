@@ -33,3 +33,4 @@ person3_app/static/uploads/*
 person3_app/static/gradcam/*
 runtime/
 *.zip
+!vyra-model-handoff.zip
