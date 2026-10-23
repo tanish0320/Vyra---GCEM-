@@ -2462,6 +2462,85 @@ def create_app() -> Flask:
             performance=performance_overview(),
         )
 
+    @app.route("/achilles-heel", methods=["GET", "POST"])
+    def achilles_heel_page():
+        """Render the Model's Achilles Heel research interface."""
+        import cv2
+        import numpy as np
+        from achilles_heel import analyze_model_shortcuts
+
+        case = request.args.get("case", "face").strip().lower()
+        scan_id = request.args.get("scan_id", type=int)
+
+        img_bgr = None
+        modality = "conjunctiva"
+
+        # Check if file uploaded via POST
+        if request.method == "POST" and "test_image" in request.files:
+            file = request.files["test_image"]
+            if file and file.filename:
+                file_bytes = np.frombuffer(file.read(), np.uint8)
+                img_bgr = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+                modality = request.form.get("modality", "conjunctiva")
+                case = "custom"
+
+        # Check if scan_id provided
+        if img_bgr is None and scan_id:
+            record = scans_active_query().filter_by(id=scan_id).first()
+            if record and record.image_file_path and record.image_file_path.exists():
+                img_bgr = cv2.imread(str(record.image_file_path))
+                modality = str(record.anatomical_modality or record.image_type or "conjunctiva").lower()
+                case = f"scan_{scan_id}"
+
+        # Otherwise use pre-loaded case
+        if img_bgr is None:
+            if case == "nail":
+                case_path = Path(r"C:\Users\urbra\Downloads\WhatsApp Image 2026-10-23 at 21.05.41.jpeg")
+                modality = "fingernail"
+                if not case_path.exists():
+                    case_path = Path("data/raw/ghana_fingernails/Fingernails/Anemic-Fin-008 (10).png")
+            elif case == "cpanemic":
+                case_path = Path("data/raw/cp_anemic/CP-AnemiC/Anemic/Image_001.png")
+                modality = "conjunctiva"
+            else:
+                case = "face"
+                case_path = Path(r"C:\Users\urbra\Downloads\WhatsApp Image 2026-10-23 at 16.40.59.jpeg")
+                modality = "conjunctiva"
+                if not case_path.exists():
+                    case_path = Path("data/raw/cp_anemic/CP-AnemiC/Anemic/Image_001.png")
+
+            if case_path.exists():
+                img_bgr = cv2.imread(str(case_path))
+
+        if img_bgr is None:
+            img_bgr = np.ones((300, 300, 3), dtype=np.uint8) * 128
+
+        report = analyze_model_shortcuts(img_bgr, modality=modality)
+        return render_template(
+            "achilles_heel.html",
+            report=report,
+            active_case=case,
+        )
+
+    @app.route("/api/v1/achilles-heel", methods=["POST"])
+    def api_achilles_heel():
+        """API endpoint returning structured shortcut vulnerability report."""
+        import cv2
+        import numpy as np
+        from achilles_heel import analyze_model_shortcuts
+
+        if "image" not in request.files:
+            return jsonify({"error": "Missing 'image' file in multipart upload."}), 400
+        file = request.files["image"]
+        modality = request.form.get("modality", "conjunctiva")
+        file_bytes = np.frombuffer(file.read(), np.uint8)
+        img_bgr = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if img_bgr is None:
+            return jsonify({"error": "Could not decode uploaded image."}), 400
+
+        report = analyze_model_shortcuts(img_bgr, modality=modality)
+        return jsonify(report)
+
     return app
 
 

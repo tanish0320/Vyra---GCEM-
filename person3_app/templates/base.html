@@ -51,6 +51,7 @@
                 <a class="nav-link {% if request.endpoint == 'history_page' %}active{% endif %}" href="{{ url_for('history_page') }}">History</a>
                 <a class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}">Analytics</a>
                 <a class="nav-link {% if request.endpoint == 'eda_page' %}active{% endif %}" href="{{ url_for('eda_page') }}">Research &amp; EDA</a>
+                <a class="nav-link {% if request.endpoint == 'achilles_heel_page' %}active{% endif %}" href="{{ url_for('achilles_heel_page') }}" style="color: #f87171;"><i data-lucide="microscope" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:2px;"></i> Achilles Heel</a>
                 <a class="nav-link {% if request.endpoint == 'about_page' %}active{% endif %}" href="{{ url_for('about_page') }}">Docs</a>
             </div>
 
@@ -83,6 +84,7 @@
             <a class="nav-link {% if request.endpoint == 'history_page' %}active{% endif %}" href="{{ url_for('history_page') }}">History</a>
             <a class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}">Analytics</a>
             <a class="nav-link {% if request.endpoint == 'eda_page' %}active{% endif %}" href="{{ url_for('eda_page') }}">Research &amp; EDA</a>
+            <a class="nav-link {% if request.endpoint == 'achilles_heel_page' %}active{% endif %}" href="{{ url_for('achilles_heel_page') }}" style="color: #f87171;"><i data-lucide="microscope" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:2px;"></i> Achilles Heel</a>
             <a class="nav-link {% if request.endpoint == 'about_page' %}active{% endif %}" href="{{ url_for('about_page') }}">Docs</a>
         </div>
     </aside>
@@ -121,6 +123,7 @@
                             <a href="{{ url_for('history_page') }}">History</a>
                             <a href="{{ url_for('analytics_page') }}">Analytics</a>
                             <a href="{{ url_for('eda_page') }}">Research &amp; EDA</a>
+                            <a href="{{ url_for('achilles_heel_page') }}">Achilles Heel Stress-Tester</a>
                             <a href="{{ url_for('about_page') }}">Docs</a>
                         </div>
                     </div>

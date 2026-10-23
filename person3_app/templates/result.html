@@ -430,6 +430,9 @@
             {% else %}
                 <button type="button" class="btn btn-primary btn-lg" id="downloadPdfButton" disabled aria-disabled="true"><i data-lucide="download"></i> PDF Unavailable (Unpersisted / Demo Scan)</button>
             {% endif %}
+            {% if scan and scan.id %}
+                <a href="{{ url_for('achilles_heel_page', scan_id=scan.id) }}" class="btn btn-outline-cyan btn-lg" title="Test if this prediction relied on tissue shortcuts"><i data-lucide="microscope"></i> Stress Test (Achilles Heel)</a>
+            {% endif %}
             <a href="{{ url_for('scan_page') }}" class="btn btn-outline-secondary btn-lg"><i data-lucide="refresh-cw"></i> New Scan</a>
             <a href="{{ url_for('history_page') }}" class="btn btn-outline-secondary btn-lg"><i data-lucide="clipboard-list"></i> View History</a>
             <button type="button" class="btn btn-outline-secondary btn-lg" id="printReportButton"><i data-lucide="printer"></i> Print</button>

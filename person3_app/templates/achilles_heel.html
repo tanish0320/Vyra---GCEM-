@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}The Model's Achilles Heel | Shortcut Learning Stress-Tester | AnemiaVision AI{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/result.css') }}">
+<style>
+.achilles-hero {
+    background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15), transparent 70%), var(--bg-surface-dark);
+    padding: 3rem 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-glass);
+    text-align: center;
+}
+
+.big-reveal-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.08) 50%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1.75rem;
+    margin: 2rem 0;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.08);
+}
+
+.big-reveal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #f87171;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.big-reveal-body {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e2e8f0;
+}
+
+.hypothesis-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.mechanism-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    display: grid;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.mechanism-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.mechanism-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.risk-pill {
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.risk-pill.critical { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.45); }
+.risk-pill.elevated { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); }
+.risk-pill.moderate { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.45); }
+.risk-pill.resilient { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.45); }
+
+.sensitivity-bar {
+    height: 8px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 0.35rem;
+}
+
+.sensitivity-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8, #f59e0b, #ef4444);
+}
+
+.perturbations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.perturbation-card {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.perturbation-thumb-wrap {
+    width: 100%;
+    height: 150px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.perturbation-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.perturbation-info {
+    padding: 1rem;
+    display: grid;
+    gap: 0.5rem;
+    flex-grow: 1;
+}
+
+.perturbation-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.case-selector-bar {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 1.5rem 0 2rem;
+}
+
+.case-btn {
+    padding: 0.55rem 1.15rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.case-btn.active, .case-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="achilles-hero">
+    <div class="page-wrap">
+        <span class="hypothesis-badge"><i data-lucide="microscope"></i> Diagnostic Stress-Tester &amp; Hypothesis Tool</span>
+        <h1><span class="gradient-text">The Model's Achilles Heel</span></h1>
+        <p style="max-width: 780px; margin: 0.5rem auto 0; color: #94a3b8; font-size: 1.05rem;">
+            Investigate what the Dual-Head EfficientNet-B3 network has accidentally learned. Does it rely on true microvascular capillary tissue or superficial shortcuts like skin tone, image framing, or ambient illumination?
+        </p>
+
+        <!-- Quick Case Switcher -->
+        <div class="case-selector-bar">
+            <a href="{{ url_for('achilles_heel_page', case='face') }}" class="case-btn {% if active_case == 'face' %}active{% endif %}">
+                <i data-lucide="eye"></i> Case 1: WhatsApp Face Image (Conjunctiva)
+            </a>
+            <a href="{{ url_for('achilles_heel_page', case='nail') }}" class="case-btn {% if active_case == 'nail' %}active{% endif %}">
+                <i data-lucide="hand"></i> Case 2: WhatsApp Thumb Image (Nail Bed)
+            </a>
+            <a href="{{ url_for('achilles_heel_page', case='cpanemic') }}" class="case-btn {% if active_case == 'cpanemic' %}active{% endif %}">
+                <i data-lucide="database"></i> Case 3: CP-AnemiC Benchmark
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+
+        <!-- The Big Reveal Callout Box -->
+        <div class="big-reveal-card">
+            <div class="big-reveal-header">
+                <i data-lucide="alert-triangle"></i>
+                <span>The Big Reveal: High Test Accuracy vs. Real-World Clinic Generalization</span>
+            </div>
+            <div class="big-reveal-body">
+                <p>
+                    <strong>A deep learning model can achieve high accuracy on a closed test dataset while relying partly on visual features that will fail when deployed in a different hospital or rural clinic.</strong>
+                </p>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #cbd5e1;">
+                    This hypothesis-testing research tool systematically ablates anatomical tissue, inverts backgrounds, shifts color temperatures, and simulates optical defocus to measure the model's actual sensitivity to non-biological shortcuts.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 1: Ranked Failure Mechanisms -->
+        <div class="section-header" style="margin-top: 2rem;">
+            <div>
+                <span class="section-kicker">Stress-Testing Findings · Ranked by Vulnerability</span>
+                <h2>Potential Failure Mechanisms</h2>
+            </div>
+            <span class="status-pill {% if report.overall_class == 'risk-high' %}pill-danger{% elif report.overall_class == 'risk-moderate' %}pill-warning{% else %}pill-success{% endif %}">
+                {{ report.overall_status }} (Index: {{ report.overall_shortcut_index }}%)
+            </span>
+        </div>
+
+        <div class="failure-mechanisms-list">
+            {% for mech in report.ranked_failure_mechanisms %}
+            <div class="mechanism-card">
+                <div class="mechanism-card-top">
+                    <div>
+                        <strong style="font-size: 1.1rem; color: #f8fafc;">#{{ loop.index }} · {{ mech.name }}</strong>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                            {{ mech.mechanism_detail }}
+                        </div>
+                    </div>
+                    <span class="risk-pill {{ mech.risk_level|lower }}">{{ mech.risk_level }} Risk</span>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+                        <span>Perturbation Sensitivity Score</span>
+                        <strong class="mono text-cyan">{{ mech.sensitivity_score }}%</strong>
+                    </div>
+                    <div class="sensitivity-bar">
+                        <div class="sensitivity-fill" style="width: {{ mech.sensitivity_score }}%;"></div>
+                    </div>
+                </div>
+
+                <div style="font-size: 0.85rem; background: rgba(255, 255, 255, 0.03); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid #38bdf8;">
+                    <strong>Evidence:</strong> {{ mech.evidence }}
+                </div>
+
+                <div style="font-size: 0.82rem; color: #94a3b8;">
+                    <i data-lucide="shield-alert" style="width: 14px; height: 14px; vertical-align: middle; color: #f59e0b;"></i>
+                    <strong>Clinical Implication:</strong> {{ mech.clinical_implication }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Section 2: Visual Perturbation Matrix -->
+        <div class="section-header" style="margin-top: 3rem;">
+            <div>
+                <span class="section-kicker">Controlled Experimental Battery · 8 Physical Conditions</span>
+                <h2>Visual Ablation &amp; Perturbation Matrix</h2>
+            </div>
+            <span class="pill">Baseline: {{ report.baseline_class|title }} ({{ report.baseline_probability }}%)</span>
+        </div>
+
+        <div class="perturbations-grid">
+            {% for cond in report.conditions %}
+            <div class="perturbation-card">
+                <div class="perturbation-thumb-wrap">
+                    <img src="{{ cond.thumbnail_b64 }}" alt="{{ cond.name }}" class="perturbation-thumb" loading="lazy">
+                    <span style="position: absolute; top: 8px; left: 8px; font-size: 0.7rem; font-weight: 700; background: rgba(0,0,0,0.75); padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
+                        {{ cond.category }}
+                    </span>
+                </div>
+                <div class="perturbation-info">
+                    <strong style="color: #f8fafc; font-size: 0.95rem;">{{ cond.name }}</strong>
+                    <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                        {{ cond.description }}
+                    </p>
+                    <div class="perturbation-metric">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Anemia Prob:</span>
+                        <strong class="mono" style="font-size: 0.95rem; {% if cond.probability >= 0.5 %}color: #f87171;{% else %}color: #34d399;{% endif %}">
+                            {{ "%.1f"|format(cond.probability * 100) }}%
+                        </strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                        <span class="status-pill {% if cond.predicted_class == 'anemic' %}pill-danger{% else %}pill-success{% endif %}" style="padding: 2px 8px; font-size: 0.7rem;">
+                            {{ cond.predicted_class|title }}
+                        </span>
+                        <span class="mono" style="color: {% if cond.percent_shift > 25 %}#f59e0b{% else %}#94a3b8{% endif %};">
+                            &Delta; {{ cond.percent_shift }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Custom Upload Section for Judges -->
+        <div class="surface-card" style="margin-top: 3rem; padding: 2rem; border: 1px dashed rgba(56, 189, 248, 0.4);">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                <i data-lucide="upload" style="color: #38bdf8;"></i>
+                <h3 style="margin: 0; font-size: 1.2rem;">Stress-Test Any Custom Clinic Image</h3>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Have your own photo or a challenging real-world test case? Upload it to run the full 8-condition perturbation battery live.
+            </p>
+            <form method="post" action="{{ url_for('achilles_heel_page') }}" enctype="multipart/form-data" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                <input type="file" name="test_image" accept="image/*" required class="form-control" style="max-width: 320px;">
+                <select name="modality" class="form-select" style="max-width: 200px;">
+                    <option value="conjunctiva">Eye Conjunctiva</option>
+                    <option value="fingernail">Fingernail Bed</option>
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="zap"></i> Run Shortcut Stress Test
+                </button>
+            </form>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
