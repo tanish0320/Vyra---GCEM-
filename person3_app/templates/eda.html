@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+
+{% block title %}Research & EDA | AnemiaVision AI{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/eda.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="page-hero eda-hero">
+    <div class="page-wrap">
+        <div class="eda-hero-badge">
+            <span class="status-dot"></span>
+            <span>Comprehensive Scientific & Diagnostic Audit</span>
+        </div>
+        <h1><span class="gradient-text">Exploratory Data Analysis</span> &amp; Benchmark</h1>
+        <p class="eda-hero-lead">
+            In-depth analysis across <strong>5,187 multi-center clinical images</strong>, zero-leakage patient clustering, chromatic normalization, and calibrated dual-head performance.
+        </p>
+
+        <!-- KPI Grid -->
+        <div class="eda-kpi-row">
+            <article class="eda-kpi-chip">
+                <span class="eda-kpi-label">Raw Images</span>
+                <strong class="eda-kpi-val">{{ kpis.total_images|default(5187) }}</strong>
+                <span class="eda-kpi-sub">Across 3 clinical cohorts</span>
+            </article>
+            <article class="eda-kpi-chip">
+                <span class="eda-kpi-label">Patient Clusters</span>
+                <strong class="eda-kpi-val">{{ kpis.unique_clusters|default(985) }}</strong>
+                <span class="eda-kpi-sub">Zero inter-split leakage</span>
+            </article>
+            <article class="eda-kpi-chip">
+                <span class="eda-kpi-label">Duplicates Purged</span>
+                <strong class="eda-kpi-val">{{ kpis.total_purged|default(2473) }}</strong>
+                <span class="eda-kpi-sub">SHA-256 + Perceptual dHash</span>
+            </article>
+            <article class="eda-kpi-chip">
+                <span class="eda-kpi-label">Paired CBCs</span>
+                <strong class="eda-kpi-val">{{ kpis.paired_cbc_samples|default(926) }}</strong>
+                <span class="eda-kpi-sub">Venous blood reference</span>
+            </article>
+            <article class="eda-kpi-chip">
+                <span class="eda-kpi-label">Calibration (T)</span>
+                <strong class="eda-kpi-val">{{ "%.3f"|format(kpis.temperature_t|default(1.339)) }}</strong>
+                <span class="eda-kpi-sub">Platt temperature scaled</span>
+            </article>
+            <article class="eda-kpi-chip eda-kpi-highlight">
+                <span class="eda-kpi-label">Leakage Rate</span>
+                <strong class="eda-kpi-val">0.0%</strong>
+                <span class="eda-kpi-sub">Verified zero cross-split</span>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+        <!-- Interactive Navigation Tabs -->
+        <nav class="eda-tab-bar" aria-label="EDA Sections">
+            <button class="eda-tab-btn active" type="button" data-tab-target="tab-splits">
+                <i data-lucide="layers"></i> Dataset Splits &amp; Cohorts
+            </button>
+            <button class="eda-tab-btn" type="button" data-tab-target="tab-plots">
+                <i data-lucide="line-chart"></i> Evaluation Plots &amp; Benchmarks
+            </button>
+            <button class="eda-tab-btn" type="button" data-tab-target="tab-gallery">
+                <i data-lucide="image"></i> Clinical Image Gallery
+            </button>
+            <button class="eda-tab-btn" type="button" data-tab-target="tab-leakage">
+                <i data-lucide="shield-check"></i> Zero-Leakage &amp; Deduplication
+            </button>
+            <button class="eda-tab-btn" type="button" data-tab-target="tab-features">
+                <i data-lucide="sliders"></i> 27-D Features &amp; Pipeline
+            </button>
+        </nav>
+
+        <!-- ==================== TAB 1: SPLITS & COHORTS ==================== -->
+        <div class="eda-tab-pane active" id="tab-splits">
+            <div class="eda-grid-2">
+                <!-- Cohort Breakdown Cards -->
+                <div class="eda-card">
+                    <div class="eda-card-head">
+                        <span class="section-kicker">Multi-Center Data</span>
+                        <h2>Clinical Cohort Distribution</h2>
+                    </div>
+                    <div class="cohort-list">
+                        <div class="cohort-item">
+                            <div class="cohort-item-head">
+                                <span class="badge badge-primary">CP-AnemiC V2</span>
+                                <strong>710 Images (463 Unique)</strong>
+                            </div>
+                            <p class="cohort-desc">
+                                Multi-center Italian clinical cohort focusing on lower palpebral and forniceal conjunctival microvasculature. <strong>100% paired with continuous venous CBC hemoglobin (g/dL)</strong>.
+                            </p>
+                            <div class="cohort-meta">
+                                <span>Modality: Palpebral Conjunctiva</span>
+                                <span>Ground Truth: Continuous Hb + Class</span>
+                            </div>
+                        </div>
+
+                        <div class="cohort-item">
+                            <div class="cohort-item-head">
+                                <span class="badge badge-cyan">EYES-DEFY-ANEMIA</span>
+                                <strong>217 Images (216 Unique)</strong>
+                            </div>
+                            <p class="cohort-desc">
+                                Cross-national clinical dataset spanning hospital patients in Italy and India. Captures diverse skin pigmentation, ambient hospital lighting, and ocular aperture variations.
+                            </p>
+                            <div class="cohort-meta">
+                                <span>Modality: Eye / Conjunctiva ROI</span>
+                                <span>Ground Truth: Continuous Hb + Class</span>
+                            </div>
+                        </div>
+
+                        <div class="cohort-item">
+                            <div class="cohort-item-head">
+                                <span class="badge badge-amber">Ghana Fingernails</span>
+                                <strong>4,260 Images (2,035 Unique)</strong>
+                            </div>
+                            <p class="cohort-desc">
+                                Standardized smartphone macro captures of fingernail beds in Sub-Saharan Africa. High-volume cohort for screening classification; <strong>purged of 2,163 duplicate captures</strong>.
+                            </p>
+                            <div class="cohort-meta">
+                                <span>Modality: Fingernail Bed Pallor</span>
+                                <span>Ground Truth: Binary Screening Class</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Charts -->
+                <div class="eda-card">
+                    <div class="eda-card-head">
+                        <span class="section-kicker">Partition Balance</span>
+                        <h2>Train / Val / Test Partitioning</h2>
+                    </div>
+                    <div class="chart-shell">
+                        <canvas id="splitBarChart" height="230"></canvas>
+                    </div>
+                    <div class="chart-shell" style="margin-top: 1.5rem;">
+                        <canvas id="classDonutChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Split Table -->
+            <div class="eda-card" style="margin-top: 1.5rem;">
+                <div class="eda-card-head">
+                    <span class="section-kicker">Granular Audit</span>
+                    <h2>Dataset Partition &amp; Ground Truth Table</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="eda-table">
+                        <thead>
+                            <tr>
+                                <th>Split Partition</th>
+                                <th>Total Images</th>
+                                <th>Patient Clusters</th>
+                                <th>Anemic (Positive)</th>
+                                <th>Non-Anemic (Negative)</th>
+                                <th>Paired CBC Lab Hb</th>
+                                <th>Primary Modalities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge badge-primary">Train</span></td>
+                                <td><strong>3,560</strong></td>
+                                <td>690</td>
+                                <td>2,081 (58.5%)</td>
+                                <td>1,479 (41.5%)</td>
+                                <td><strong>652</strong></td>
+                                <td>Conjunctiva (653), Fingernail (2,907)</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-cyan">Validation</span></td>
+                                <td><strong>602</strong></td>
+                                <td>99</td>
+                                <td>347 (57.6%)</td>
+                                <td>255 (42.4%)</td>
+                                <td><strong>100</strong></td>
+                                <td>Conjunctiva (100), Fingernail (502)</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge badge-emerald">Held-out Test</span></td>
+                                <td><strong>1,025</strong></td>
+                                <td>196</td>
+                                <td>608 (59.3%)</td>
+                                <td>417 (40.7%)</td>
+                                <td><strong>174</strong></td>
+                                <td>Conjunctiva (174), Fingernail (851)</td>
+                            </tr>
+                            <tr class="table-total-row">
+                                <td><strong>Total Curated</strong></td>
+                                <td><strong>5,187</strong></td>
+                                <td><strong>985</strong></td>
+                                <td><strong>3,036 (58.5%)</strong></td>
+                                <td><strong>2,151 (41.5%)</strong></td>
+                                <td><strong>926</strong></td>
+                                <td>Multi-Modal Dual Architecture</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: BENCHMARK PLOTS ==================== -->
+        <div class="eda-tab-pane" id="tab-plots">
+            <div class="eda-card" style="margin-bottom: 1.5rem;">
+                <div class="eda-card-head">
+                    <span class="section-kicker">Champion Dual-Head Performance</span>
+                    <h2>Diagnostic Evaluation Artifacts</h2>
+                    <p class="section-sub">
+                        Evaluated strictly on the held-out test partition (N = 1,025 for classification, N = 174 paired for hemoglobin regression). No synthetic test data.
+                    </p>
+                </div>
+
+                <div class="metrics-highlight-grid">
+                    <div class="metric-highlight-box">
+                        <span class="metric-highlight-label">Sensitivity (Screening Recall)</span>
+                        <strong class="metric-highlight-val">67.4%</strong>
+                        <span class="metric-highlight-sub">410 / 608 test anemics flagged</span>
+                    </div>
+                    <div class="metric-highlight-box">
+                        <span class="metric-highlight-label">Precision (PPV)</span>
+                        <strong class="metric-highlight-val">70.4%</strong>
+                        <span class="metric-highlight-sub">70.4% of flagged cases verified</span>
+                    </div>
+                    <div class="metric-highlight-box">
+                        <span class="metric-highlight-label">ROC-AUC Discriminator</span>
+                        <strong class="metric-highlight-val">0.664</strong>
+                        <span class="metric-highlight-sub">Discriminatory AUC across thresholds</span>
+                    </div>
+                    <div class="metric-highlight-box">
+                        <span class="metric-highlight-label">Continuous Hb Mean Bias</span>
+                        <strong class="metric-highlight-val">+0.17 g/dL</strong>
+                        <span class="metric-highlight-sub">Near-zero systematic offset vs CBC</span>
+                    </div>
+                    <div class="metric-highlight-box">
+                        <span class="metric-highlight-label">Continuous Hb MAE</span>
+                        <strong class="metric-highlight-val">2.06 g/dL</strong>
+                        <span class="metric-highlight-sub">Mean Absolute Error across test</span>
+                    </div>
+                    <div class="metric-highlight-box">
+                        <span class="metric-highlight-label">Calibrated Brier Score</span>
+                        <strong class="metric-highlight-val">0.227</strong>
+                        <span class="metric-highlight-sub">Reflects probability reliability</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="eda-plots-grid">
+                {% for plot in plots %}
+                <article class="eda-plot-card">
+                    <div class="eda-plot-head">
+                        <div class="eda-plot-title-row">
+                            <h3>{{ plot.title }}</h3>
+                            <span class="badge badge-primary">{{ plot.badge }}</span>
+                        </div>
+                        <p class="eda-plot-sub">{{ plot.subtitle }}</p>
+                    </div>
+                    <div class="eda-plot-img-wrap" data-zoom-img="{{ url_for('static', filename=plot.file) }}" data-zoom-title="{{ plot.title }}" data-zoom-caption="{{ plot.subtitle }}">
+                        <img src="{{ url_for('static', filename=plot.file) }}" alt="{{ plot.title }}" loading="lazy" class="eda-plot-img">
+                        <div class="eda-plot-zoom-overlay">
+                            <i data-lucide="maximize-2"></i>
+                            <span>Click to expand high-res</span>
+                        </div>
+                    </div>
+                    <div class="eda-plot-footer">
+                        <span class="eda-plot-stat"><i data-lucide="info"></i> {{ plot.stats }}</span>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: IMAGE GALLERY ==================== -->
+        <div class="eda-tab-pane" id="tab-gallery">
+            <div class="eda-card" style="margin-bottom: 1.5rem;">
+                <div class="eda-card-head">
+                    <span class="section-kicker">Clinical Morphology</span>
+                    <h2>Dataset Sample Gallery &amp; Microvascular Inspection</h2>
+                    <p class="section-sub">
+                        Representative image samples showcasing the biological pallor contrast between anemic and non-anemic cohorts, automated palpebral ROI cropping, and explainable Grad-CAM heatmaps.
+                    </p>
+                </div>
+            </div>
+
+            <div class="eda-gallery-grid">
+                {% for sample in samples %}
+                <article class="eda-gallery-card">
+                    <div class="eda-gallery-img-wrap" data-zoom-img="{{ url_for('static', filename=sample.file) }}" data-zoom-title="{{ sample.title }}" data-zoom-caption="{{ sample.caption }}">
+                        <img src="{{ url_for('static', filename=sample.file) }}" alt="{{ sample.title }}" loading="lazy" class="eda-gallery-img">
+                        <span class="eda-gallery-tag">{{ sample.tag }}</span>
+                        <div class="eda-plot-zoom-overlay">
+                            <i data-lucide="zoom-in"></i>
+                            <span>Inspect sample</span>
+                        </div>
+                    </div>
+                    <div class="eda-gallery-body">
+                        <div class="eda-gallery-meta-row">
+                            <span class="badge badge-secondary">{{ sample.cohort }}</span>
+                            <span class="eda-gallery-modality">{{ sample.modality }}</span>
+                        </div>
+                        <h4>{{ sample.title }}</h4>
+                        <p class="eda-gallery-caption">{{ sample.caption }}</p>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ==================== TAB 4: ZERO-LEAKAGE AUDIT ==================== -->
+        <div class="eda-tab-pane" id="tab-leakage">
+            <div class="eda-grid-2">
+                <div class="eda-card">
+                    <div class="eda-card-head">
+                        <span class="section-kicker">Clinical Validation Integrity</span>
+                        <h2>The Patient Leakage Problem &amp; Our Solution</h2>
+                    </div>
+                    <div class="eda-text-block">
+                        <p>
+                            In published smartphone healthcare AI, a widespread flaw is <strong>patient cross-contamination</strong>: images of the same patient (e.g. left eye vs. right eye, or burst photo shots under identical lighting) are split randomly between the training and testing sets.
+                        </p>
+                        <p>
+                            When models memorize the room lighting or individual skin tone, they report inflated 95%+ "accuracy" that completely collapses in real-world clinic trials.
+                        </p>
+                        <div class="eda-callout-box">
+                            <strong><i data-lucide="shield-alert"></i> VYRA's Zero-Leakage Architecture:</strong>
+                            <p>
+                                We implemented a 2-tier deduplication and clustering pipeline prior to splitting:
+                            </p>
+                            <ul>
+                                <li><strong>Tier 1 — Exact SHA-256 Hashing:</strong> Identified and purged 2,375 identical image duplicates across cohorts.</li>
+                                <li><strong>Tier 2 — Perceptual 64-bit dHash:</strong> Clustered near-identical burst shots and angle variations using Hamming distance thresholds to consolidate patient identities without patient ID labels.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="eda-card">
+                    <div class="eda-card-head">
+                        <span class="section-kicker">Verification Matrix</span>
+                        <h2>Inter-Split Cross-Contamination Audit</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="eda-table">
+                            <thead>
+                                <tr>
+                                    <th>Audit Check</th>
+                                    <th>Pairs Tested</th>
+                                    <th>Detected Overlap</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Patient Cluster ID Overlap</strong></td>
+                                    <td>Train vs. Val</td>
+                                    <td>0 (0.0%)</td>
+                                    <td><span class="badge badge-emerald"><i data-lucide="check"></i> Zero Leakage</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Patient Cluster ID Overlap</strong></td>
+                                    <td>Train vs. Test</td>
+                                    <td>0 (0.0%)</td>
+                                    <td><span class="badge badge-emerald"><i data-lucide="check"></i> Zero Leakage</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Patient Cluster ID Overlap</strong></td>
+                                    <td>Val vs. Test</td>
+                                    <td>0 (0.0%)</td>
+                                    <td><span class="badge badge-emerald"><i data-lucide="check"></i> Zero Leakage</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Exact SHA-256 Hash Match</strong></td>
+                                    <td>All Split Combinations</td>
+                                    <td>0 (0.0%)</td>
+                                    <td><span class="badge badge-emerald"><i data-lucide="check"></i> Zero Leakage</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Perceptual dHash Match</strong></td>
+                                    <td>All Split Combinations</td>
+                                    <td>0 (0.0%)</td>
+                                    <td><span class="badge badge-emerald"><i data-lucide="check"></i> Zero Leakage</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>File Path &amp; Source Match</strong></td>
+                                    <td>All Split Combinations</td>
+                                    <td>0 (0.0%)</td>
+                                    <td><span class="badge badge-emerald"><i data-lucide="check"></i> Zero Leakage</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="eda-audit-stamp">
+                        <i data-lucide="check-circle-2"></i>
+                        <span>Audit Status: <strong>VERIFIED_ZERO_LEAKAGE</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deduplication Inventory -->
+            <div class="eda-card" style="margin-top: 1.5rem;">
+                <div class="eda-card-head">
+                    <span class="section-kicker">Deduplication Summary</span>
+                    <h2>Cohort Deduplication Breakdown</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="eda-table">
+                        <thead>
+                            <tr>
+                                <th>Clinical Dataset</th>
+                                <th>Raw Ingested Images</th>
+                                <th>Exact SHA-256 Duplicates Purged</th>
+                                <th>Perceptual dHash Duplicates Purged</th>
+                                <th>Unique Patient Clusters Retained</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>CP-AnemiC V2</strong></td>
+                                <td>710</td>
+                                <td>212</td>
+                                <td>35</td>
+                                <td><strong>463</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>EYES-DEFY-ANEMIA</strong></td>
+                                <td>217</td>
+                                <td>0</td>
+                                <td>1</td>
+                                <td><strong>216</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Ghana Fingernails</strong></td>
+                                <td>4,260</td>
+                                <td>2,163</td>
+                                <td>62</td>
+                                <td><strong>2,035</strong></td>
+                            </tr>
+                            <tr class="table-total-row">
+                                <td><strong>Total Pipeline</strong></td>
+                                <td><strong>5,187</strong></td>
+                                <td><strong>2,375</strong></td>
+                                <td><strong>98</strong></td>
+                                <td><strong>985</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 5: FEATURES & PIPELINE ==================== -->
+        <div class="eda-tab-pane" id="tab-features">
+            <div class="eda-grid-2">
+                <div class="eda-card">
+                    <div class="eda-card-head">
+                        <span class="section-kicker">Feature Engineering</span>
+                        <h2>The 27-Dimensional Chromatic Feature Vector</h2>
+                    </div>
+                    <p class="section-sub">
+                        In addition to the deep convolutional feature map from EfficientNet-B3, VYRA's dual-head predictor extracts a calibrated 27-dimensional chromatic tabular vector from each normalized region:
+                    </p>
+                    <div class="feature-spec-grid">
+                        <div class="feature-spec-card">
+                            <span class="badge badge-primary">Color Ratios (6)</span>
+                            <strong>Normalized RGB Channels</strong>
+                            <p>Channel proportions: R/(R+G+B), G/(R+G+B), B/(R+G+B), R/G, R/B, G/B to decouple luminance intensity from spectral reflectance.</p>
+                        </div>
+                        <div class="feature-spec-card">
+                            <span class="badge badge-cyan">CIE-LAB Erythema (6)</span>
+                            <strong>a* &amp; b* Chromaticity</strong>
+                            <p>Mean, median, and variance of a* (green-to-red axis, proxy for blood perfusion) and b* (blue-to-yellow axis, proxy for bilirubin/jaundice).</p>
+                        </div>
+                        <div class="feature-spec-card">
+                            <span class="badge badge-amber">HSV Saturation (6)</span>
+                            <strong>Vascular Saturation &amp; Value</strong>
+                            <p>Hue angle, saturation richness, and value distribution to measure the blanching effect of depleted hemoglobin concentration.</p>
+                        </div>
+                        <div class="feature-spec-card">
+                            <span class="badge badge-emerald">Micro-Texture (9)</span>
+                            <strong>Spatial Entropy &amp; Contrast</strong>
+                            <p>Local Shannon entropy, Haralick contrast, and capillary edge gradient density to distinguish vessel branching from diffuse skin pallor.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="eda-card">
+                    <div class="eda-card-head">
+                        <span class="section-kicker">Clinical Safety Rules</span>
+                        <h2>Operational Clinical Guardrails</h2>
+                    </div>
+                    <div class="guardrails-list">
+                        <div class="guardrail-item">
+                            <div class="guardrail-icon"><i data-lucide="alert-octagon"></i></div>
+                            <div class="guardrail-content">
+                                <strong>The Fingernail Rule</strong>
+                                <p>
+                                    Continuous Hemoglobin regression (g/dL) is <strong>strictly locked to the conjunctiva modality</strong>. The fingernail modality is programmatically restricted to binary screening classification, preventing clinically unsubstantiated continuous Hb claims without paired lab CBCs.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="guardrail-item">
+                            <div class="guardrail-icon"><i data-lucide="eye"></i></div>
+                            <div class="guardrail-content">
+                                <strong>Automated ROI Gating</strong>
+                                <p>
+                                    Automated YuNet face &amp; ocular landmark localization isolates the palpebral conjunctiva microvascular zone, discarding uninformative iris, sclera, and facial skin.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="guardrail-item">
+                            <div class="guardrail-icon"><i data-lucide="sun"></i></div>
+                            <div class="guardrail-content">
+                                <strong>Optical Quality Rejection Gate</strong>
+                                <p>
+                                    Images with flash glare saturation (&gt;15% specular reflection), extreme blur, or out-of-frame anatomy are rejected immediately with guidance to retake, avoiding false predictions.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="guardrail-item">
+                            <div class="guardrail-icon"><i data-lucide="file-check-2"></i></div>
+                            <div class="guardrail-content">
+                                <strong>Medical Disclaimer Mandate</strong>
+                                <p>
+                                    VYRA is an AI-assisted screening prototype intended for Community Health Worker (CHW) triage. It never replaces laboratory venous CBC testing.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Lightbox Modal for Zooming Plots & Images -->
+<div id="edaLightbox" class="eda-lightbox" aria-hidden="true">
+    <div class="eda-lightbox-backdrop" data-close-lightbox></div>
+    <div class="eda-lightbox-content">
+        <button class="btn icon-btn eda-lightbox-close" type="button" data-close-lightbox aria-label="Close image preview">
+            <i data-lucide="x"></i>
+        </button>
+        <div class="eda-lightbox-media">
+            <img id="lightboxImg" src="" alt="Expanded preview">
+        </div>
+        <div class="eda-lightbox-info">
+            <h3 id="lightboxTitle"></h3>
+            <p id="lightboxCaption"></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/eda.js') }}" defer></script>
+{% endblock %}

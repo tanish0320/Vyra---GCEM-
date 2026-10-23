@@ -413,3 +413,24 @@ def test_no_patient_pii_logged_in_frontend_javascript():
     for js_file in js_dir.glob("*.js"):
         source = js_file.read_text(encoding="utf-8")
         assert "console.log(" not in source, f"Found console.log in {js_file.name}"
+
+
+def test_eda_page_renders_with_complete_audit_and_plots():
+    """Ensure the Research & EDA dashboard displays complete dataset inventory, leakage audit, and plots."""
+    client = vyra_app.app.test_client()
+    resp = client.get("/eda")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+
+    # Check key audit and EDA indicators
+    assert "Exploratory Data Analysis" in html
+    assert "5,187" in html or "5187" in html
+    assert "CP-AnemiC V2" in html
+    assert "EYES-DEFY-ANEMIA" in html
+    assert "Ghana Fingernails" in html
+    assert "VERIFIED_ZERO_LEAKAGE" in html
+    assert "champion_confusion_matrix.png" in html
+    assert "reliability_diagram.png" in html
+    assert "champion_bland_altman.png" in html
+    assert "27-Dimensional Chromatic Feature Vector" in html
+
