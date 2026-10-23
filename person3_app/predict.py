@@ -280,7 +280,42 @@ class AnemiaPredictor:
                 warnings=validation.warnings,
             )
 
-        input_tensor = self.preprocess_image(resolved_path)
+        body_part = "conjunctiva"
+        if patient_info and patient_info.get("image_type"):
+            raw_t = str(patient_info["image_type"]).lower()
+            if "nail" in raw_t:
+                body_part = "fingernail"
+
+        try:
+            from roi_detector import detect_and_crop_roi
+        except ImportError:
+            from src.preprocessing.roi_detector import detect_and_crop_roi
+
+        roi_result = detect_and_crop_roi(resolved_path, body_part)
+        if not roi_result.success:
+            return PredictionResult(
+                prediction=None,
+                confidence=0.0,
+                anemic_probability=0.0,
+                non_anemic_probability=0.0,
+                risk_level=None,
+                risk_explanation=roi_result.message,
+                gradcam_path=None,
+                medical_advice=roi_result.retake_guidance or "Please retake the image with better framing.",
+                hemoglobin_estimate=None,
+                processing_time_ms=int(round((perf_counter() - started_at) * 1000)),
+                image_quality="unusable",
+                error=roi_result.retake_guidance or roi_result.message,
+                warnings=[roi_result.message],
+            )
+
+        if roi_result.detection_type == "auto_cropped" and roi_result.cropped_image_rgb is not None:
+            analysis_path = resolved_path.parent / f"{resolved_path.stem}_roi.png"
+            Image.fromarray(roi_result.cropped_image_rgb).save(analysis_path)
+        else:
+            analysis_path = resolved_path
+
+        input_tensor = self.preprocess_image(analysis_path)
 
         self.model.eval()
         with torch.no_grad():

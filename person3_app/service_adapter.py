@@ -1319,6 +1319,28 @@ def run_vyra_predict(
     # 2. Validate & canonicalize body_part ("conjunctiva" or "fingernail")
     canonical_body_part = resolve_body_part(body_part)
 
+    # 2b. Anatomical ROI Detection & Automated Cropping
+    try:
+        from roi_detector import detect_and_crop_roi
+    except ImportError:
+        from src.preprocessing.roi_detector import detect_and_crop_roi
+
+    roi_result = detect_and_crop_roi(resolved_raw_path, canonical_body_part)
+    if not roi_result.success:
+        retake_msg = roi_result.retake_guidance or roi_result.message
+        raise ImageUploadValidationError(
+            f"{roi_result.message} {retake_msg}",
+            failure_category="anatomical_roi_not_detected",
+            internal_detail=roi_result.to_dict(),
+        )
+
+    # If auto-cropped from a wider frame, save the isolated tissue to a cropped path for analysis
+    if roi_result.detection_type == "auto_cropped" and roi_result.cropped_image_rgb is not None:
+        effective_analysis_path = resolved_raw_path.parent / f"{resolved_raw_path.stem}_roi.png"
+        Image.fromarray(roi_result.cropped_image_rgb).save(effective_analysis_path)
+    else:
+        effective_analysis_path = resolved_raw_path
+
     # 3. Resolve screening threshold (0.50 balanced default, 0.255 high-sensitivity)
     resolved_threshold, is_high_sens = resolve_screening_threshold(
         screening_threshold=screening_threshold,
@@ -1328,8 +1350,8 @@ def run_vyra_predict(
     # 4. Build sanitized patient metadata dictionary ({"age": ..., "sex": ...})
     metadata = build_inference_metadata(patient_payload)
 
-    # 5. Run Person 1 normalization stage (or documented boundary preserving raw image)
-    normalized_stage = run_normalization_stage(resolved_raw_path, canonical_body_part)
+    # 5. Run Person 1 normalization stage (on verified/cropped anatomical tissue)
+    normalized_stage = run_normalization_stage(effective_analysis_path, canonical_body_part)
     validated_feature_vector = (
         _validate_feature_vector(feature_vector)
         if feature_vector is not None
