@@ -74,3 +74,18 @@ def test_full_face_rejected_for_fingernail_modality():
         assert res.success is False
         assert "face was detected" in res.message.lower()
         assert "Eye Conjunctiva" in res.retake_guidance
+
+
+def test_full_hand_auto_crops_fingernail():
+    """A photo with hand entering from top edge (finger pointing down) must crop distal nail bed, not knuckle."""
+    nail_path = Path(r"C:\Users\urbra\Downloads\WhatsApp Image 2026-10-23 at 21.05.41.jpeg")
+    if nail_path.exists():
+        res = detect_and_crop_roi(nail_path, modality="Fingernail")
+        assert res.success is True
+        assert res.detection_type == "auto_cropped"
+        assert res.roi_bbox is not None
+        # Distal nail bed is near bottom (y > 600), not proximal knuckle (y < 400)
+        assert res.roi_bbox[1] > 600
+        assert res.cropped_image_rgb.shape[0] >= 100
+        assert res.cropped_image_rgb.shape[1] >= 100
+

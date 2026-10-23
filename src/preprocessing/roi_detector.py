@@ -215,38 +215,59 @@ def detect_and_crop_conjunctiva(image_bgr: np.ndarray) -> ROIDetectionResult:
         )
 
     candidate_crops = []
-    rw = max(115, int(iod * 0.55))
-    rh = max(105, int(iod * 0.35))
+    # Search window below pupil:
+    win_w = max(110, int(iod * 0.48))
+    win_h = max(80, int(iod * 0.35))
 
     for eye_name, (ex, ey) in [("right_eye", r_eye), ("left_eye", l_eye)]:
-        x1 = max(0, int(ex - rw // 2))
-        x2 = min(w, int(ex + rw // 2))
-        y1 = max(0, int(ey - rh * 0.12))
-        y2 = min(h, int(ey + rh * 0.88))
+        wx1 = max(0, int(ex - win_w // 2))
+        wx2 = min(w, int(ex + win_w // 2))
+        wy1 = max(0, int(ey))
+        wy2 = min(h, int(ey + win_h))
 
-        if (x2 - x1) < 100:
-            diff = 100 - (x2 - x1)
-            x1 = max(0, x1 - diff // 2)
-            x2 = min(w, x1 + 100)
-        if (y2 - y1) < 100:
-            diff = 100 - (y2 - y1)
-            y1 = max(0, y1 - diff // 2)
-            y2 = min(h, y1 + 100)
-
-        crop_bgr = image_bgr[y1:y2, x1:x2]
-        if crop_bgr.shape[0] < 40 or crop_bgr.shape[1] < 40:
+        search_roi = image_bgr[wy1:wy2, wx1:wx2]
+        if search_roi.shape[0] < 20 or search_roi.shape[1] < 20:
             continue
 
-        lower_zone = crop_bgr[crop_bgr.shape[0] // 2 :, :]
-        rgb_zone = cv2.cvtColor(lower_zone, cv2.COLOR_BGR2RGB).astype(float)
-        r_chan, g_chan, b_chan = rgb_zone[:, :, 0], rgb_zone[:, :, 1], rgb_zone[:, :, 2]
-        vascularity = float(np.mean(r_chan / (g_chan + b_chan + 1e-5)))
+        # Row-wise mucosal redness profile (a* in LAB + Cr in YCrCb):
+        lab_roi = cv2.cvtColor(search_roi, cv2.COLOR_BGR2LAB)
+        ycrcb_roi = cv2.cvtColor(search_roi, cv2.COLOR_BGR2YCrCb)
+        a_star = lab_roi[:, :, 1].astype(float)
+        cr = ycrcb_roi[:, :, 1].astype(float)
+        row_redness = np.mean(a_star + 0.5 * cr, axis=1)
+
+        peak_y = int(np.argmax(row_redness))
+        peak_val = float(row_redness[peak_y])
+
+        # Tightly frame the mucosal band around peak_y to exclude cheek skin,
+        # eyelashes, and pulling fingers
+        band_h = max(35, int(iod * 0.15))
+        by1 = max(0, wy1 + peak_y - int(band_h * 0.45))
+        by2 = min(h, wy1 + peak_y + int(band_h * 0.55))
+        bx1 = wx1
+        bx2 = wx2
+
+        # Enforce minimum dimension >= 100
+        crop_w = bx2 - bx1
+        crop_h = by2 - by1
+        if crop_w < 100:
+            d = 100 - crop_w
+            bx1 = max(0, bx1 - d // 2)
+            bx2 = min(w, bx1 + 100)
+        if crop_h < 100:
+            d = 100 - crop_h
+            by1 = max(0, by1 - d // 2)
+            by2 = min(h, by1 + 100)
+
+        crop_bgr = image_bgr[by1:by2, bx1:bx2]
+        if crop_bgr.shape[0] < 30 or crop_bgr.shape[1] < 30:
+            continue
 
         candidate_crops.append({
             "name": eye_name,
             "crop_bgr": crop_bgr,
-            "bbox": (x1, y1, x2, y2),
-            "vascularity": vascularity,
+            "bbox": (bx1, by1, bx2, by2),
+            "vascularity": peak_val,
         })
 
     if not candidate_crops:
@@ -341,11 +362,14 @@ def detect_and_crop_fingernail(image_bgr: np.ndarray) -> ROIDetectionResult:
 
     # 3. Automated hand/finger contour & nail bed detection
     ycrcb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2YCrCb)
-    skin_mask = cv2.inRange(ycrcb, np.array([0, 130, 75]), np.array([255, 185, 135]))
+    skin_ycrcb = cv2.inRange(ycrcb, np.array([0, 130, 75]), np.array([255, 185, 135]))
+    hsv = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2HSV)
+    skin_hsv = cv2.inRange(hsv, np.array([0, 20, 40]), np.array([25, 255, 255]))
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    skin_mask = skin_ycrcb & skin_hsv
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     skin_mask = cv2.morphologyEx(skin_mask, cv2.MORPH_OPEN, kernel, iterations=2)
-    skin_mask = cv2.morphologyEx(skin_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    skin_mask = cv2.morphologyEx(skin_mask, cv2.MORPH_CLOSE, kernel, iterations=3)
 
     skin_fraction = float(np.mean(skin_mask > 0))
     if skin_fraction < 0.08:
@@ -375,36 +399,69 @@ def detect_and_crop_fingernail(image_bgr: np.ndarray) -> ROIDetectionResult:
             retake_guidance=RETAKE_GUIDANCE_FINGERNAIL,
         )
 
-    min_area = (h * w) * 0.02
-    significant = [c for c in contours if cv2.contourArea(c) >= min_area]
-    if not significant:
-        significant = contours
+    best_contour = max(contours, key=cv2.contourArea)
+    pts = best_contour[:, 0, :]
 
-    best_contour = max(significant, key=cv2.contourArea)
-    topmost = tuple(best_contour[best_contour[:, :, 1].argmin()][0])
-    x_pt, y_pt = topmost
+    # Orientation analysis: count border contacts to identify entry direction
+    top_touch = int(np.sum(pts[:, 1] <= 10))
+    bottom_touch = int(np.sum(pts[:, 1] >= h - 10))
+    left_touch = int(np.sum(pts[:, 0] <= 10))
+    right_touch = int(np.sum(pts[:, 0] >= w - 10))
 
+    if top_touch > 0 and bottom_touch == 0:
+        orientation = "down"
+        tip_pt = pts[pts[:, 1].argmax()]
+    elif bottom_touch > 0 and top_touch == 0:
+        orientation = "up"
+        tip_pt = pts[pts[:, 1].argmin()]
+    elif left_touch > 0 and right_touch == 0 and top_touch == 0 and bottom_touch == 0:
+        orientation = "right"
+        tip_pt = pts[pts[:, 0].argmax()]
+    elif right_touch > 0 and left_touch == 0 and top_touch == 0 and bottom_touch == 0:
+        orientation = "left"
+        tip_pt = pts[pts[:, 0].argmin()]
+    elif top_touch >= bottom_touch and top_touch >= left_touch and top_touch >= right_touch:
+        orientation = "down"
+        tip_pt = pts[pts[:, 1].argmax()]
+    elif bottom_touch >= top_touch and bottom_touch >= left_touch and bottom_touch >= right_touch:
+        orientation = "up"
+        tip_pt = pts[pts[:, 1].argmin()]
+    elif left_touch >= right_touch:
+        orientation = "right"
+        tip_pt = pts[pts[:, 0].argmax()]
+    else:
+        orientation = "up"
+        tip_pt = pts[pts[:, 1].argmin()]
+
+    tx, ty = int(tip_pt[0]), int(tip_pt[1])
     cx, cy, cw, ch = cv2.boundingRect(best_contour)
-    nail_size = max(110, int(min(cw, ch) * 0.45))
-    nail_w = nail_size
-    nail_h = int(nail_size * 1.15)
 
-    x1 = max(0, int(x_pt - nail_w // 2))
-    x2 = min(w, int(x_pt + nail_w // 2))
-    y1 = max(0, int(y_pt - 5))
-    y2 = min(h, int(y_pt + nail_h))
+    half_w = max(70, min(160, int(min(cw, ch) * 0.20)))
+    half_h = int(half_w * 1.1)
 
-    if (x2 - x1) < 100:
-        diff = 100 - (x2 - x1)
-        x1 = max(0, x1 - diff // 2)
-        x2 = min(w, x1 + 100)
-    if (y2 - y1) < 100:
-        diff = 100 - (y2 - y1)
-        y1 = max(0, y1 - diff // 2)
-        y2 = min(h, y1 + 100)
+    if orientation == "down":
+        distal_y1 = max(0, ty - int(half_h * 2.0))
+        distal_y2 = min(h, ty + int(half_h * 0.15))
+        distal_x1 = max(0, tx - half_w)
+        distal_x2 = min(w, tx + half_w)
+    elif orientation == "up":
+        distal_y1 = max(0, ty - int(half_h * 0.15))
+        distal_y2 = min(h, ty + int(half_h * 2.0))
+        distal_x1 = max(0, tx - half_w)
+        distal_x2 = min(w, tx + half_w)
+    elif orientation == "right":
+        distal_x1 = max(0, tx - int(half_h * 2.0))
+        distal_x2 = min(w, tx + int(half_h * 0.15))
+        distal_y1 = max(0, ty - half_w)
+        distal_y2 = min(h, ty + half_w)
+    else:  # left
+        distal_x1 = max(0, tx - int(half_h * 0.15))
+        distal_x2 = min(w, tx + int(half_h * 2.0))
+        distal_y1 = max(0, ty - half_w)
+        distal_y2 = min(h, ty + half_w)
 
-    crop_bgr = image_bgr[y1:y2, x1:x2]
-    if crop_bgr.shape[0] < 40 or crop_bgr.shape[1] < 40:
+    distal_crop = image_bgr[distal_y1:distal_y2, distal_x1:distal_x2]
+    if distal_crop.shape[0] < 30 or distal_crop.shape[1] < 30:
         return ROIDetectionResult(
             success=False,
             cropped_image_rgb=None,
@@ -416,6 +473,40 @@ def detect_and_crop_fingernail(image_bgr: np.ndarray) -> ROIDetectionResult:
             retake_guidance=RETAKE_GUIDANCE_FINGERNAIL,
         )
 
+    # Localized nail plate segmentation in LAB space:
+    dh, dw = distal_crop.shape[:2]
+    lab = cv2.cvtColor(distal_crop, cv2.COLOR_BGR2LAB)
+    blur_L = cv2.GaussianBlur(lab[:, :, 0], (5, 5), 0)
+    _, thresh = cv2.threshold(blur_L, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    plate_contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    valid_plates = [c for c in plate_contours if cv2.contourArea(c) >= (dh * dw * 0.04)]
+
+    if valid_plates:
+        best_nail = max(valid_plates, key=cv2.contourArea)
+        nx, ny, ncw, nch = cv2.boundingRect(best_nail)
+        margin_x = int(ncw * 0.15)
+        margin_y = int(nch * 0.15)
+        nx1 = max(0, nx - margin_x)
+        nx2 = min(dw, nx + ncw + margin_x)
+        ny1 = max(0, ny - margin_y)
+        ny2 = min(dh, ny + nch + margin_y)
+        fx1 = distal_x1 + nx1
+        fx2 = distal_x1 + nx2
+        fy1 = distal_y1 + ny1
+        fy2 = distal_y1 + ny2
+    else:
+        fx1, fy1, fx2, fy2 = distal_x1, distal_y1, distal_x2, distal_y2
+
+    if (fx2 - fx1) < 100:
+        diff = 100 - (fx2 - fx1)
+        fx1 = max(0, fx1 - diff // 2)
+        fx2 = min(w, fx1 + 100)
+    if (fy2 - fy1) < 100:
+        diff = 100 - (fy2 - fy1)
+        fy1 = max(0, fy1 - diff // 2)
+        fy2 = min(h, fy1 + 100)
+
+    crop_bgr = image_bgr[fy1:fy2, fx1:fx2]
     if crop_bgr.shape[0] < 100 or crop_bgr.shape[1] < 100:
         crop_bgr = cv2.resize(
             crop_bgr,
@@ -427,11 +518,11 @@ def detect_and_crop_fingernail(image_bgr: np.ndarray) -> ROIDetectionResult:
     return ROIDetectionResult(
         success=True,
         cropped_image_rgb=crop_rgb,
-        roi_bbox=(x1, y1, x2, y2),
+        roi_bbox=(fx1, fy1, fx2, fy2),
         detection_type="auto_cropped",
         confidence=0.85,
         modality="fingernail",
-        message=f"Automatically detected fingertip and cropped nail bed ({x2-x1}x{y2-y1} px).",
+        message=f"Automatically detected fingertip ({orientation}) and cropped nail bed ({fx2-fx1}x{fy2-fy1} px).",
     )
 
 
