@@ -1,0 +1,58 @@
+{
+  "test_eye_conjunctiva": {
+    "image_file": "samples/test_eye_conjunctiva.png",
+    "source_dataset": "CP-AnemiC V2 (Image_002.png)",
+    "split": "test",
+    "ground_truth": {
+      "patient_id": "CP_Image_002",
+      "class": "anemic",
+      "binary_label": 1,
+      "lab_hb_g_dl": 9.9,
+      "age": 24,
+      "gender": "M"
+    },
+    "model_inference_output": {
+      "hb_estimate_g_dl": 10.77,
+      "anemia_probability": 0.608,
+      "predicted_class": "anemic",
+      "model_version": "vyra-dualhead-efficientnet-b3-v1.0",
+      "calibration_status": "calibrated",
+      "quality_warnings": [],
+      "error": null,
+      "anatomical_modality": "conjunctiva",
+      "ita_angle": -82.35,
+      "ita_category": "Dark",
+      "glare_fraction": 0.0002,
+      "processing_time_ms": 694,
+      "regression_status": "validated"
+    }
+  },
+  "test_fingernail": {
+    "image_file": "samples/test_fingernail.png",
+    "source_dataset": "Ghana Fingernails (Anemic-Fin-007 (10).png)",
+    "split": "test",
+    "ground_truth": {
+      "patient_id": "GH_FIN-007",
+      "class": "anemic",
+      "binary_label": 1,
+      "has_continuous_lab_hb": false
+    },
+    "model_inference_output": {
+      "hb_estimate_g_dl": null,
+      "anemia_probability": 0.567,
+      "predicted_class": "anemic",
+      "model_version": "vyra-dualhead-efficientnet-b3-v1.0",
+      "calibration_status": "calibrated",
+      "quality_warnings": [
+        "Continuous Hb regression is validated strictly on conjunctiva with paired laboratory CBC; for fingernails, screening relies on the classification head."
+      ],
+      "error": null,
+      "anatomical_modality": "fingernail",
+      "ita_angle": -85.08,
+      "ita_category": "Dark",
+      "glare_fraction": 0.0,
+      "processing_time_ms": 35,
+      "regression_status": "unavailable"
+    }
+  }
+}

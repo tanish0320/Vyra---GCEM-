@@ -34,3 +34,6 @@ person3_app/static/gradcam/*
 runtime/
 *.zip
 !vyra-model-handoff.zip
+
+# React frontend integration build (recreate with web build:integration)
+/person3_app/static/ui/

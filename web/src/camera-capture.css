@@ -1,0 +1,176 @@
+.guided-camera-dialog[data-slot="dialog-content"] {
+  width: min(680px, calc(100vw - 32px));
+  max-width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  gap: 18px;
+  padding: 28px;
+  background: #f9fbf8;
+  color: #18252b;
+}
+.guided-camera-dialog [data-slot="dialog-header"] {
+  padding-right: 26px;
+}
+.guided-camera-dialog [data-slot="dialog-title"] {
+  font-size: 24px;
+  line-height: 1.2;
+}
+.guided-camera-dialog [data-slot="dialog-description"] {
+  font-size: var(--type-control, 16px);
+  line-height: 1.6;
+  color: #5b706e;
+}
+.guided-camera-preview.camera-preview {
+  min-height: 0;
+  width: 100%;
+  border: 1px solid #cddcd6;
+  border-radius: 12px;
+  background: #172c2a;
+  isolation: isolate;
+}
+.guided-camera-preview.camera-preview video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+.guided-camera-preview > .spin {
+  color: white;
+  z-index: 2;
+}
+.capture-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid #c6f6e7;
+  box-shadow:
+    0 0 0 1px #173d3780,
+    0 0 0 800px #102f3329;
+  pointer-events: none;
+}
+.capture-reticle-conjunctiva {
+  width: 76%;
+  height: 38%;
+  border-radius: 50% 50% 46% 46%;
+}
+.capture-reticle-fingernail {
+  width: 40%;
+  height: 74%;
+  border-radius: 44% 44% 22% 22%;
+}
+.capture-reticle-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  opacity: 0.8;
+}
+.capture-reticle-cross::before,
+.capture-reticle-cross::after {
+  content: "";
+  position: absolute;
+  background: #d9fff3;
+  box-shadow: 0 0 2px #122e32;
+}
+.capture-reticle-cross::before {
+  width: 14px;
+  height: 1px;
+  top: 6px;
+}
+.capture-reticle-cross::after {
+  width: 1px;
+  height: 14px;
+  left: 6px;
+}
+.capture-beam {
+  position: absolute;
+  z-index: 3;
+  inset: 0 0 auto;
+  height: 3px;
+  background: #ff5252;
+  box-shadow:
+    0 0 14px #ff5252,
+    0 -18px 40px 8px #ff525240;
+  animation: camera-capture-sweep 340ms ease-out both;
+  pointer-events: none;
+}
+@keyframes camera-capture-sweep {
+  from {
+    top: 0;
+  }
+  to {
+    top: 100%;
+  }
+}
+.capture-telemetry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.capture-telemetry output {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+  background: #edf3ef;
+  border: 1px solid #d3dfd8;
+  border-radius: 7px;
+  color: #526b65;
+  font-size: var(--type-caption, 14px);
+  line-height: 1.45;
+}
+.capture-telemetry output[data-state="good"] {
+  background: #e7f3ed;
+  color: #006c67;
+  border-color: #b8d5c8;
+}
+.capture-telemetry output[data-state="adjust"] {
+  background: #f8f0e0;
+  color: #745c27;
+  border-color: #e4d7b8;
+}
+.capture-telemetry svg {
+  flex: none;
+}
+.capture-check-note {
+  margin: -6px 0 0;
+  color: #647670;
+  font-size: var(--type-caption, 14px);
+  line-height: 1.6;
+}
+.guided-camera-dialog #shutterBtn {
+  width: 100%;
+  min-height: 46px;
+  height: auto;
+  font-size: var(--type-control, 16px);
+}
+@media (max-width: 480px) {
+  .guided-camera-dialog[data-slot="dialog-content"] {
+    padding: 22px 16px 16px;
+    gap: 16px;
+  }
+  .guided-camera-dialog [data-slot="dialog-title"] {
+    font-size: 22px;
+  }
+  .capture-telemetry {
+    gap: 7px;
+  }
+  .capture-telemetry output {
+    flex: 1 1 125px;
+    padding: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .capture-beam {
+    animation: none;
+    top: 50%;
+    box-shadow: none;
+  }
+}

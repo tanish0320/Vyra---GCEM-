@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "id": "nail",
+  "bounds": {
+    "min": [
+      -0.6719095706939697,
+      -2.1500000953674316,
+      -0.7199726104736328
+    ],
+    "max": [
+      0.673733115196228,
+      1.8589999675750732,
+      0.5829941630363464
+    ]
+  },
+  "parts": [
+    {
+      "id": "nail-plate",
+      "label": "Nail plate",
+      "description": "The curved, translucent keratin plate protects the nail bed below.",
+      "nodes": [
+        "NailPlate_Whole",
+        "NailPlate_Far",
+        "FreeEdge_Far",
+        "FreeEdge_Near"
+      ],
+      "anchor": [
+        0,
+        0.2,
+        0.63
+      ],
+      "explode": [
+        0,
+        0.08,
+        1.15
+      ]
+    },
+    {
+      "id": "nail-bed",
+      "label": "Nail bed",
+      "description": "The vascular tissue beneath the plate contributes to its visible color. Pallor is illustrated here.",
+      "nodes": [
+        "NailBed_Whole",
+        "NailBed_Far"
+      ],
+      "anchor": [
+        0.02,
+        0.35,
+        0.52
+      ],
+      "explode": [
+        0,
+        0,
+        0.56
+      ],
+      "pallor": true,
+      "materials": [
+        "NailBed"
+      ]
+    },
+    {
+      "id": "matrix",
+      "label": "Nail matrix",
+      "description": "The proximal matrix produces the nail plate. Its visible distal portion forms the lunula.",
+      "nodes": [
+        "NailMatrix_Far",
+        "NailMatrix_Near",
+        "Matrix_Section",
+        "Lunula"
+      ],
+      "anchor": [
+        0.02,
+        -0.95,
+        0.43
+      ],
+      "explode": [
+        -0.25,
+        -0.75,
+        0.55
+      ]
+    },
+    {
+      "id": "skin-folds",
+      "label": "Skin and nail folds",
+      "description": "The proximal and lateral folds surround and protect the edges of the nail plate.",
+      "nodes": [
+        "Epidermis_Far",
+        "Epidermis_Near",
+        "LateralFold_Far",
+        "LateralFold_Near",
+        "ProximalFold_Far",
+        "ProximalFold_Near",
+        "DistalJointCreases"
+      ],
+      "anchor": [
+        -0.53,
+        -0.7,
+        0.42
+      ],
+      "explode": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "cuticle",
+      "label": "Cuticle",
+      "description": "The thin seal extending from the proximal fold adheres to the nail plate.",
+      "nodes": [
+        "Eponychium_Far",
+        "Eponychium_Near"
+      ],
+      "anchor": [
+        -0.27,
+        -0.92,
+        0.59
+      ],
+      "explode": [
+        -0.15,
+        -0.2,
+        0.65
+      ]
+    },
+    {
+      "id": "distal-phalanx",
+      "label": "Distal phalanx",
+      "description": "The fingertip bone supports the nail unit and the surrounding soft tissues.",
+      "nodes": [
+        "DistalPhalanx_Far",
+        "DistalPhalanx_Near",
+        "DistalPhalanx_Section",
+        "MedullaryCavity_Far",
+        "MedullaryCavity_Near",
+        "MedullaryCavity_Section",
+        "CancellousTrabeculae"
+      ],
+      "anchor": [
+        0.03,
+        0.4,
+        -0.17
+      ],
+      "explode": [
+        1.25,
+        -0.08,
+        -0.25
+      ]
+    },
+    {
+      "id": "soft-tissue",
+      "label": "Fingertip pulp",
+      "description": "Connective tissue and the padded fingertip surround the supporting bone.",
+      "nodes": [
+        "Epidermis_Section",
+        "FingerPulp_Far",
+        "FingerPulp_Near",
+        "AdiposeLobules"
+      ],
+      "anchor": [
+        0.02,
+        0.65,
+        -0.51
+      ],
+      "explode": [
+        -1.2,
+        0,
+        -0.28
+      ]
+    },
+    {
+      "id": "vessels",
+      "label": "Blood vessels",
+      "description": "Small vessels supply the nail unit and fingertip. This vascular pattern is illustrative.",
+      "nodes": [
+        "SectionArterioles",
+        "SectionVenules",
+        "DigitalVessels_Far",
+        "DigitalVessels_Near"
+      ],
+      "anchor": [
+        0.05,
+        -0.25,
+        0.1
+      ],
+      "explode": [
+        0.95,
+        0,
+        0.65
+      ]
+    }
+  ],
+  "credits": [
+    {
+      "author": "Vyra project",
+      "title": "Original layered fingertip atlas",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24079579/",
+      "license": "Original project artwork",
+      "licenseUrl": "",
+      "changes": "Original geometry and normal maps; skin, connective-tissue and cancellous-bone albedo studies generated with OpenAI Image Gen. Anatomical relationships informed by de Berker, Nail anatomy (2013). Not derived from a marketplace model."
+    }
+  ],
+  "cameras": {
+    "front": [
+      0,
+      0,
+      7
+    ],
+    "angle": [
+      5,
+      2.2,
+      6
+    ],
+    "cutaway": [
+      6,
+      1.2,
+      4.7
+    ]
+  },
+  "coordinates": "Y-up, distal +Y, dorsal +Z; sagittal cutaway removes x>0",
+  "pallorMaterials": [
+    "NailBed"
+  ],
+  "purpose": "Educational anatomy. Illustrative color variation is not a diagnostic or hemoglobin scale."
+}

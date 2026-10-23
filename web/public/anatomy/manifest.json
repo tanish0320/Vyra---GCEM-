@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "generators": [
+    "scripts/build_eye_atlas.py",
+    "scripts/build_nail_atlas.py"
+  ],
+  "purpose": "Educational visualization; appearance does not diagnose anemia.",
+  "assets": [
+    {
+      "file": "eye.glb",
+      "bytes": 4124756,
+      "sha256": "01d63f4f670c515895c71ffdd8d41343fd7864b0df65038b754fa67e6c8fe9f5",
+      "vertices": 72648,
+      "triangles": 135545,
+      "meshes": 30,
+      "textures": 13,
+      "parts": 21,
+      "parts_manifest": "eye.parts.json",
+      "parts_sha256": "8b5f1397dd915accebfad3c2e6203b496f5866babcb61dc5c8e3c9bff6209bc6",
+      "poster": "eye-poster.png",
+      "poster_sha256": "deb6ea0c6685987c8d2d789478088772b4fa610884dc86cfd4f0f2ee07643365",
+      "credits": [
+        {
+          "author": "Kristen Browne; Heidi Schlehlein",
+          "title": "HRA Eye, Female, Right v1.3",
+          "url": "https://doi.org/10.48539/HBM632.KTDP.379",
+          "license": "CC BY 4.0",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+          "changes": "Normalized, optimized, UV mapped, textured and adapted with sectional variants. Optic nerve, extraocular muscles, retinal vessels and outer lid presentation geometry authored for Vyra."
+        }
+      ]
+    },
+    {
+      "file": "nail.glb",
+      "bytes": 6623056,
+      "sha256": "c049c9c3fe67cd1af503daa61137c1c3d88a28aed31584cfe4a99d970ce747b4",
+      "vertices": 82049,
+      "triangles": 152776,
+      "meshes": 34,
+      "textures": 10,
+      "parts": 8,
+      "parts_manifest": "nail.parts.json",
+      "parts_sha256": "8a55b1eecaae9431e8be04c0f82bc91722e92a80e1b1e13048eca4be3913f861",
+      "poster": "nail-poster.png",
+      "poster_sha256": "76cf65400ce2b6e8e8b73150f0eba0a9817b7a10ad6fc6433962431299aa0695",
+      "credits": [
+        {
+          "author": "Vyra project",
+          "title": "Original layered fingertip atlas",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/24079579/",
+          "license": "Original project artwork",
+          "licenseUrl": "",
+          "changes": "Original geometry and normal maps; skin, connective-tissue and cancellous-bone albedo studies generated with OpenAI Image Gen. Anatomical relationships informed by de Berker, Nail anatomy (2013). Not derived from a marketplace model."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "model_version": "vyra-champion-dualhead-efficientnet-b3",
+  "checkpoint": "C:\\Users\\urbra\\OneDrive\\Desktop\\Projects\\VYRA\\checkpoints\\champion_joint_dualhead.pth",
+  "temperature_scaling_T": 1.3391530513763428,
+  "test_dataset_size": 1025,
+  "classification": {
+    "accuracy": 0.6390243902439025,
+    "sensitivity_recall": 0.6743421052631579,
+    "specificity": 0.5875299760191847,
+    "precision": 0.7044673539518901,
+    "f1_score": 0.6890756302521008,
+    "roc_auc": 0.66391755017039,
+    "brier_score": 0.22744105018779054,
+    "confusion_matrix": {
+      "TN": 245,
+      "FP": 172,
+      "FN": 198,
+      "TP": 410
+    }
+  },
+  "hemoglobin_regression": {
+    "paired_samples": 174,
+    "mae_g_dl": 2.0637096262526238,
+    "rmse_g_dl": 2.643499017396701,
+    "r2_score": 0.03427373561916025,
+    "bland_altman": {
+      "mean_bias_g_dl": 0.1725456139137005,
+      "sd_bias": 2.645474728752283,
+      "loa_upper_95_g_dl": 5.357676082268175,
+      "loa_lower_95_g_dl": -5.012584854440774
+    }
+  }
+}

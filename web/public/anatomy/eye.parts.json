@@ -1,0 +1,454 @@
+{
+  "version": 1,
+  "id": "eye",
+  "bounds": {
+    "min": [
+      -2.1500000953674316,
+      -1.6399999856948853,
+      -2.680097818374634
+    ],
+    "max": [
+      2.1500000953674316,
+      1.6399999856948853,
+      1.6901755332946777
+    ]
+  },
+  "camera": {
+    "position": [
+      6,
+      2.8,
+      7.5
+    ],
+    "target": [
+      0,
+      0,
+      0.8
+    ]
+  },
+  "parts": [
+    {
+      "id": "sclera",
+      "label": "Sclera",
+      "description": "The strong outer coat of the eye supports its shape.",
+      "nodes": [
+        "Eye_sclera",
+        "Eye_sclera_section"
+      ],
+      "anchor": [
+        1.22,
+        0.52,
+        0.0
+      ],
+      "explode": [
+        0,
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "choroid",
+      "label": "Choroid",
+      "description": "The vascular layer lies between the sclera and retina.",
+      "nodes": [
+        "Eye_choroid",
+        "Eye_choroid_section"
+      ],
+      "anchor": [
+        0.78,
+        0.84,
+        0.16
+      ],
+      "explode": [
+        0,
+        0,
+        -0.28
+      ]
+    },
+    {
+      "id": "retina",
+      "label": "Retina",
+      "description": "Light-sensitive tissue lines the inside of the back of the eye.",
+      "nodes": [
+        "Eye_retina",
+        "Eye_retina_section"
+      ],
+      "anchor": [
+        -0.2,
+        0.8,
+        -0.8
+      ],
+      "explode": [
+        0,
+        0,
+        0.2
+      ]
+    },
+    {
+      "id": "iris",
+      "label": "Iris",
+      "description": "The iris controls the amount of light entering through the pupil.",
+      "nodes": [
+        "Eye_iris"
+      ],
+      "anchor": [
+        -0.43,
+        0.36,
+        1.33
+      ],
+      "explode": [
+        0,
+        0,
+        2.55
+      ]
+    },
+    {
+      "id": "pupil",
+      "label": "Pupil",
+      "description": "The pupil is the opening at the center of the iris.",
+      "nodes": [
+        "Eye_pupil"
+      ],
+      "anchor": [
+        -0.06,
+        0.01,
+        1.34
+      ],
+      "explode": [
+        0,
+        0,
+        2.55
+      ],
+      "views": [
+        "assembled",
+        "pallor",
+        "exploded",
+        "cutaway"
+      ]
+    },
+    {
+      "id": "cornea",
+      "label": "Cornea",
+      "description": "The clear curved front surface helps focus incoming light.",
+      "nodes": [
+        "Eye_cornea"
+      ],
+      "anchor": [
+        -0.46,
+        0.38,
+        1.55
+      ],
+      "explode": [
+        0,
+        0,
+        3.35
+      ]
+    },
+    {
+      "id": "limbus",
+      "label": "Limbus",
+      "description": "The junction where the transparent cornea meets the sclera.",
+      "nodes": [
+        "Eye_limbus"
+      ],
+      "anchor": [
+        0.64,
+        0.15,
+        1.3
+      ],
+      "explode": [
+        0,
+        0,
+        -0.65
+      ],
+      "views": [
+        "assembled",
+        "pallor"
+      ]
+    },
+    {
+      "id": "lens",
+      "label": "Lens",
+      "description": "The transparent lens behind the iris changes shape to focus light.",
+      "nodes": [
+        "Eye_lens"
+      ],
+      "anchor": [
+        -0.1,
+        -0.2,
+        1.22
+      ],
+      "explode": [
+        0,
+        0,
+        1.75
+      ]
+    },
+    {
+      "id": "ciliary-body",
+      "label": "Ciliary body",
+      "description": "The ciliary body supports the lens and produces aqueous fluid.",
+      "nodes": [
+        "Eye_ciliary_body"
+      ],
+      "anchor": [
+        -0.81,
+        0.35,
+        1.12
+      ],
+      "explode": [
+        0,
+        0,
+        0.95
+      ]
+    },
+    {
+      "id": "ciliary-processes",
+      "label": "Ciliary processes",
+      "description": "These folds are part of the ciliary body surrounding the lens.",
+      "nodes": [
+        "Eye_ciliary_processes"
+      ],
+      "anchor": [
+        -0.67,
+        -0.35,
+        1.13
+      ],
+      "explode": [
+        0,
+        0,
+        0.95
+      ]
+    },
+    {
+      "id": "ciliary-muscle",
+      "label": "Ciliary muscle",
+      "description": "The ciliary muscle contributes to changes in lens shape.",
+      "nodes": [
+        "Eye_ciliary_muscle"
+      ],
+      "anchor": [
+        0.73,
+        0.35,
+        1.13
+      ],
+      "explode": [
+        0,
+        0,
+        0.8
+      ]
+    },
+    {
+      "id": "zonules",
+      "label": "Suspensory ligaments",
+      "description": "Fine fibers connect the lens to the ciliary body.",
+      "nodes": [
+        "Eye_zonules"
+      ],
+      "anchor": [
+        -0.55,
+        -0.32,
+        1.12
+      ],
+      "explode": [
+        0,
+        0,
+        1.4
+      ]
+    },
+    {
+      "id": "optic-disc",
+      "label": "Optic disc",
+      "description": "Retinal nerve fibers converge at the optic disc.",
+      "nodes": [
+        "Eye_optic_disc"
+      ],
+      "anchor": [
+        0.45,
+        0.0,
+        -1.2
+      ],
+      "explode": [
+        0,
+        0,
+        0.2
+      ]
+    },
+    {
+      "id": "macula",
+      "label": "Macula",
+      "description": "The macula is a region of the retina used for central vision.",
+      "nodes": [
+        "Eye_macula"
+      ],
+      "anchor": [
+        0,
+        0,
+        -1.2
+      ],
+      "explode": [
+        0,
+        0,
+        0.2
+      ]
+    },
+    {
+      "id": "fovea",
+      "label": "Fovea",
+      "description": "The fovea is the central retinal region specialized for fine detail.",
+      "nodes": [
+        "Eye_fovea"
+      ],
+      "anchor": [
+        0,
+        0,
+        -1.2
+      ],
+      "explode": [
+        0,
+        0,
+        0.2
+      ]
+    },
+    {
+      "id": "conjunctiva",
+      "label": "Lower conjunctiva",
+      "description": "The inner lower eyelid is the tissue used for eye screening in Vyra.",
+      "nodes": [
+        "Eye_conjunctiva"
+      ],
+      "anchor": [
+        0,
+        -0.6,
+        1.6
+      ],
+      "explode": [
+        0,
+        0,
+        0
+      ],
+      "pallor": true,
+      "views": [
+        "pallor"
+      ]
+    },
+    {
+      "id": "upper-conjunctiva",
+      "label": "Upper conjunctiva",
+      "description": "The conjunctiva lines the inner surface of the upper eyelid.",
+      "nodes": [
+        "Eye_upper_conjunctiva"
+      ],
+      "anchor": [
+        0,
+        0.65,
+        1.55
+      ],
+      "explode": [
+        0,
+        0,
+        0
+      ],
+      "views": [
+        "pallor"
+      ]
+    },
+    {
+      "id": "optic-nerve",
+      "label": "Optic nerve",
+      "description": "The optic nerve carries visual signals from the retina toward the brain.",
+      "nodes": [
+        "Eye_optic_nerve",
+        "Eye_optic_nerve_fibres"
+      ],
+      "anchor": [
+        0.55,
+        0.1,
+        -2.4
+      ],
+      "explode": [
+        0,
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "muscles",
+      "label": "Extraocular muscles",
+      "description": "The external eye muscles move the globe within the orbit.",
+      "nodes": [
+        "Eye_rectus_1",
+        "Eye_rectus_2",
+        "Eye_rectus_3",
+        "Eye_rectus_4"
+      ],
+      "anchor": [
+        0,
+        1.47,
+        -0.35
+      ],
+      "explode": [
+        0,
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "retinal-vessels",
+      "label": "Retinal vessels",
+      "description": "Retinal blood vessels support the light-sensitive tissue.",
+      "nodes": [
+        "Eye_retinal_vessels"
+      ],
+      "anchor": [
+        0.55,
+        0.6,
+        -0.92
+      ],
+      "explode": [
+        0,
+        0,
+        0.2
+      ],
+      "views": [
+        "cutaway",
+        "exploded"
+      ]
+    },
+    {
+      "id": "eyelids",
+      "label": "Eyelids",
+      "description": "The eyelids protect the eye and expose the lower conjunctiva when gently lowered.",
+      "nodes": [
+        "Eye_orbital_skin",
+        "Eye_lid_margin",
+        "Eye_lashes"
+      ],
+      "anchor": [
+        1.15,
+        0.55,
+        1.42
+      ],
+      "explode": [
+        0,
+        0,
+        0
+      ],
+      "views": [
+        "pallor"
+      ]
+    }
+  ],
+  "credits": [
+    {
+      "author": "Kristen Browne; Heidi Schlehlein",
+      "title": "HRA Eye, Female, Right v1.3",
+      "url": "https://doi.org/10.48539/HBM632.KTDP.379",
+      "license": "CC BY 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "changes": "Normalized, optimized, UV mapped, textured and adapted with sectional variants. Optic nerve, extraocular muscles, retinal vessels and outer lid presentation geometry authored for Vyra."
+    }
+  ],
+  "sha256": "01d63f4f670c515895c71ffdd8d41343fd7864b0df65038b754fa67e6c8fe9f5",
+  "bytes": 4124756,
+  "triangles": 135545
+}
