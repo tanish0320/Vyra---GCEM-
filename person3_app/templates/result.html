@@ -583,6 +583,87 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    function escapeHtml(str) {
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function formatAssistantMessage(rawText) {
+        if (!rawText) return "";
+
+        // 1. Separate disclaimer if present
+        let mainText = rawText;
+        let disclaimerHtml = "";
+        const discMatch = rawText.match(/(?:⚠️|Disclaimer:|\*\*Clinical Disclaimer\*\*|\*\*चिकित्सा अस्वीकरण)[\s\S]*$/i);
+        if (discMatch) {
+            const rawDisc = discMatch[0].replace(/\*\*/g, "").replace(/⚠️\s*/, "").trim();
+            mainText = rawText.substring(0, discMatch.index).trim();
+            disclaimerHtml = `
+                <div class="assistant-disclaimer-pill">
+                    <i data-lucide="shield-alert" style="width: 14px; height: 14px; flex-shrink: 0; color: #f59e0b; margin-top: 2px;"></i>
+                    <span><strong>Clinical Notice:</strong> ${escapeHtml(rawDisc)}</span>
+                </div>
+            `;
+        }
+
+        // 2. Escape HTML on main content
+        let escaped = escapeHtml(mainText);
+
+        // 3. Format markdown headers (### or ##)
+        escaped = escaped.replace(/^###\s*(.*)$/gm, '<h4 class="assistant-subheading">$1</h4>');
+        escaped = escaped.replace(/^##\s*(.*)$/gm, '<h3 class="assistant-heading">$1</h3>');
+
+        // 4. Format bold text: **text** -> <strong>$1</strong> and clean asterisks
+        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        escaped = escaped.replace(/\*\*/g, '');
+
+        // 5. Structure lists (bullet points and numbers)
+        const lines = escaped.split('\n');
+        let structuredLines = [];
+        let inUl = false;
+        let inOl = false;
+
+        for (let line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) {
+                if (inUl) { structuredLines.push('</ul>'); inUl = false; }
+                if (inOl) { structuredLines.push('</ol>'); inOl = false; }
+                continue;
+            }
+
+            // Bullet list item
+            if (trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                if (inOl) { structuredLines.push('</ol>'); inOl = false; }
+                if (!inUl) { structuredLines.push('<ul class="assistant-list">'); inUl = true; }
+                const item = trimmed.replace(/^[•\-\*]\s*/, '');
+                structuredLines.push(`<li>${item}</li>`);
+            }
+            // Numbered list item
+            else if (/^\d+[\.\)]\s/.test(trimmed)) {
+                if (inUl) { structuredLines.push('</ul>'); inUl = false; }
+                if (!inOl) { structuredLines.push('<ol class="assistant-ordered-list">'); inOl = true; }
+                const item = trimmed.replace(/^\d+[\.\)]\s*/, '');
+                structuredLines.push(`<li>${item}</li>`);
+            }
+            // Normal paragraph or heading
+            else {
+                if (inUl) { structuredLines.push('</ul>'); inUl = false; }
+                if (inOl) { structuredLines.push('</ol>'); inOl = false; }
+                if (trimmed.startsWith('<h3') || trimmed.startsWith('<h4')) {
+                    structuredLines.push(trimmed);
+                } else {
+                    structuredLines.push(`<p class="assistant-p">${trimmed}</p>`);
+                }
+            }
+        }
+        if (inUl) structuredLines.push('</ul>');
+        if (inOl) structuredLines.push('</ol>');
+
+        return structuredLines.join('') + disclaimerHtml;
+    }
+
     function appendMessage(sender, text, isEmergency, modelTag) {
         if (!chatStream) return;
         const wrap = document.createElement("div");
@@ -594,7 +675,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const contentDiv = document.createElement("div");
         const bubble = document.createElement("div");
         bubble.className = "chat-bubble" + (isEmergency ? " is-emergency" : "");
-        bubble.textContent = text;
+        
+        if (sender === "user") {
+            bubble.textContent = text;
+        } else {
+            bubble.innerHTML = formatAssistantMessage(text);
+        }
         contentDiv.appendChild(bubble);
 
         if (modelTag) {

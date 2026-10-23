@@ -138,9 +138,10 @@ class QwenLLMClient:
         payload_dict: Dict[str, Any] = {
             "model": self.model,
             "prompt": prompt,
+            "keep_alive": "24h",
             "stream": False,
             "options": {
-                "temperature": 0.2,
+                "temperature": 0.3,
                 "top_p": 0.85,
                 "num_predict": 450
             }
@@ -283,7 +284,30 @@ class DeterministicMedicalExplainer:
 
     @staticmethod
     def answer_general_question(bundle: Dict[str, Any], question: str, language: str = "en") -> str:
-        q_lower = question.lower()
+        q_lower = question.lower().strip()
+
+        # Check for natural conversational greetings
+        greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "namaste", "नमस्ते", "हेलो", "dr vyra", "doctor"]
+        if q_lower in greetings or any(q_lower.startswith(g) for g in ["hi ", "hello ", "hey ", "namaste "]):
+            mod = "palpebral conjunctiva" if bundle.get("modality") == "conjunctiva" else "fingernail bed"
+            status = "Elevated Anemia Risk" if str(bundle.get("prediction", "")).lower() == "anemic" else "Normal Range"
+            if language == "hi":
+                out = (
+                    "👋 **नमस्ते! मैं डॉ. वायरा हूँ, आपकी AI मेडिकल सहायक।**\n\n"
+                    f"आपके हालिया स्कैन में एनीमिया की संभावना **{bundle.get('anemic_probability_pct', 0.0):.1f}%** दर्ज की गई है। "
+                    "मैं आपके इमेज निष्कर्ष, एरिथेमा इंडेक्स, हीमोग्लोबिन स्तर, एनीमिया के कारण, लक्षण या खान-पान से जुड़े सवालों के जवाब देने के लिए यहाँ हूँ।\n\n"
+                    "आप ऊपर दिए गए किसी भी सुझाव बटन को चुन सकते हैं या सीधे मुझसे अपना प्रश्न पूछ सकते हैं।"
+                )
+                return out + MANDATORY_DISCLAIMER_HI
+
+            out = (
+                "👋 **Hello! I am Dr. VYRA, your Explainable AI Medical Assistant.**\n\n"
+                f"Based on your calibrated optical scan of the **{mod}**, your estimated anemia risk is **{bundle.get('anemic_probability_pct', 0.0):.1f}%** ({status}).\n\n"
+                "I am here to help you understand your scan: why this prediction was made, what the biophysical spectroscopy indicates, what causes anemia, and what dietary steps or symptoms to watch for.\n\n"
+                "Feel free to click any suggestion chip above or ask me a specific health question!"
+            )
+            return out + MANDATORY_DISCLAIMER_EN
+
         if any(w in q_lower for w in ["diet", "food", "eat", "खाना", "आहार", "भोजन"]):
             if language == "hi":
                 out = (
@@ -387,6 +411,7 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
         system_prompt = (
             "You are Dr. VYRA, an empathetic, hospital-grade AI Explainable Medical Assistant. "
             "Your objective is to educate the patient about their anemia screening results using clear, compassionate language.\n\n"
+            "If the user greets you (e.g. 'hi', 'hello', 'hey'), warmly introduce yourself as Dr. VYRA, summarize their current optical screening probability, and invite them to ask about their image features, symptoms, or diet.\n\n"
             "STRICT CLINICAL GUARDRAILS (YOU MUST FOLLOW THESE RULES WITHOUT EXCEPTION):\n"
             "1. STRICT FACT GROUNDING: Ground your response strictly on the patient's verified scan facts below. Do NOT invent conflicting numbers.\n"
             f"   - Anatomical Modality: {bundle['modality']}\n"
@@ -397,13 +422,14 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
             f"   - CIE a* Microvascular Chromophore: {bundle['a_star']}\n"
             "2. PROHIBITION OF PRESCRIPTIONS: NEVER prescribe prescription medicines, dosages, intravenous iron sucrose, or blood transfusion orders. Only recommend safe supportive dietary iron (leafy greens, dates, lentils) and Vitamin C.\n"
             "3. NO DEFINITIVE DIAGNOSIS: Explain that this is a non-invasive optical screening test, not a definitive hospital diagnosis. Advise consulting a doctor for a CBC.\n"
-            f"4. LANGUAGE: Answer fluently and respectfully in {'Hindi' if language == 'hi' else 'English'}."
+            f"4. LANGUAGE: Answer fluently and respectfully in {'Hindi' if language == 'hi' else 'English'}.\n"
+            "5. STRUCTURED FORMATTING: Do NOT output raw double asterisks (**). Format your response cleanly using short paragraphs and clean bullet points (- ). Make it clean, professional, and easy to read."
         )
 
         user_prompt = f"Patient Question: {question}\n\nPlease provide a clear, helpful, grounded explanation adhering to the medical guardrails."
 
         try:
-            qwen_response = client.generate(user_prompt, system_prompt=system_prompt, timeout=7.0)
+            qwen_response = client.generate(user_prompt, system_prompt=system_prompt, timeout=15.0)
         except Exception as e:
             logger.info("Qwen generation error: %s", e)
             qwen_response = None
