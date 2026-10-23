@@ -362,6 +362,74 @@
             </article>
         </div>
 
+        <!-- Explainable AI Clinical Assistant (Qwen 2.5 + MediAssist Guardrails) -->
+        <section class="assistant-section reveal" id="assistantSection" aria-labelledby="assistantHeading">
+            <div class="assistant-card">
+                <div class="assistant-topbar">
+                    <div class="assistant-identity">
+                        <div class="assistant-avatar" aria-hidden="true">
+                            <i data-lucide="bot"></i>
+                        </div>
+                        <div class="assistant-title-group">
+                            <h3 id="assistantHeading">
+                                <span>Dr. VYRA</span>
+                                <span style="font-size: 0.75rem; font-weight: 500; color: #38bdf8; background: rgba(56,189,248,0.12); padding: 2px 8px; border-radius: 999px;">Explainable AI</span>
+                            </h3>
+                            <p>Grounded clinical explainer &bull; Powered by local Qwen 2.5 &bull; MediAssist Guardrails Active</p>
+                        </div>
+                    </div>
+
+                    <div class="assistant-controls">
+                        <span class="guardrail-badge" title="Emergency firewall, biophysical fact grounding, and prescription blocks active">
+                            <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Guardrails Active
+                        </span>
+                        <div class="lang-switch" role="group" aria-label="Language selection">
+                            <button type="button" class="lang-btn active" data-lang="en">EN</button>
+                            <button type="button" class="lang-btn" data-lang="hi">हिंदी</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Inquiry Chips -->
+                <div class="assistant-chips-tray" id="assistantChips">
+                    <button type="button" class="assistant-chip" data-query="What does my image specifically show?">
+                        <i data-lucide="microscope" style="width: 14px; height: 14px;"></i> What does my image show?
+                    </button>
+                    <button type="button" class="assistant-chip" data-query="Why does anemia happen and what causes it?">
+                        <i data-lucide="droplet" style="width: 14px; height: 14px;"></i> What causes anemia?
+                    </button>
+                    <button type="button" class="assistant-chip" data-query="What symptoms should I monitor?">
+                        <i data-lucide="stethoscope" style="width: 14px; height: 14px;"></i> Key symptoms to monitor
+                    </button>
+                    <button type="button" class="assistant-chip" data-query="What foods and diet help improve hemoglobin?">
+                        <i data-lucide="apple" style="width: 14px; height: 14px;"></i> Recommended diet &amp; care
+                    </button>
+                </div>
+
+                <!-- Interactive Chat Stream -->
+                <div class="assistant-chat-stream" id="assistantChatStream" role="log" aria-live="polite">
+                    <div class="chat-bubble-wrap bot">
+                        <div class="chat-bubble-avatar"><i data-lucide="bot" style="width: 16px; height: 16px;"></i></div>
+                        <div>
+                            <div class="chat-bubble">Hello! I am Dr. VYRA, your Explainable AI Medical Assistant. Based on your optical scan of the {% if 'nail' in (scan.anatomical_modality or scan.image_type or '')|lower %}fingernail bed{% else %}palpebral conjunctiva{% endif %}, your calibrated anemia probability is <strong>{{ "%.1f"|format((scan.anemic_probability or 0) * 100) }}%</strong> ({% if scan.prediction|lower == 'anemic' %}Elevated Anemia Risk{% else %}Normal Range{% endif %}).
+
+Click any question chip above or type your question below. I will explain why this prediction was made, what the biophysical spectroscopy indicates, and what symptoms to watch for.</div>
+                            <span class="chat-model-tag">Grounded Clinical Assistant</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <form class="assistant-input-form" id="assistantForm" onsubmit="return false;">
+                    <input type="text" class="assistant-input" id="assistantInput" placeholder="Ask Dr. VYRA about your scan findings, symptoms, or diet..." autocomplete="off">
+                    <button type="button" class="assistant-send-btn" id="assistantSendBtn">
+                        <span>Ask</span>
+                        <i data-lucide="send" style="width: 15px; height: 15px;"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
         <!-- Dedicated CHW Referral & Follow-Up Card (Separate from Model Inference Output) -->
         <section class="referral-workflow-card surface-card reveal" id="referralWorkflowCard" aria-labelledby="referralCardHeading">
             <div class="referral-card-header">
@@ -492,6 +560,114 @@ document.addEventListener("DOMContentLoaded", () => {
 
     slider?.addEventListener("input", updateView);
     updateView();
+
+    // Dr. VYRA Explainable AI Assistant Handler
+    let activeLang = "en";
+    const scanId = {{ scan.id if scan and scan.id else 'null' }};
+    const chatStream = document.getElementById("assistantChatStream");
+    const inputField = document.getElementById("assistantInput");
+    const sendBtn = document.getElementById("assistantSendBtn");
+    const langBtns = document.querySelectorAll(".lang-btn");
+    const chipBtns = document.querySelectorAll(".assistant-chip");
+
+    langBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            langBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            activeLang = btn.dataset.lang;
+            if (activeLang === "hi") {
+                inputField.placeholder = "डॉ. वायरा से अपनी रिपोर्ट, लक्षण या आहार के बारे में पूछें...";
+            } else {
+                inputField.placeholder = "Ask Dr. VYRA about your scan findings, symptoms, or diet...";
+            }
+        });
+    });
+
+    function appendMessage(sender, text, isEmergency, modelTag) {
+        if (!chatStream) return;
+        const wrap = document.createElement("div");
+        wrap.className = `chat-bubble-wrap ${sender}`;
+        const avatar = document.createElement("div");
+        avatar.className = "chat-bubble-avatar";
+        avatar.innerHTML = sender === "user" ? '<i data-lucide="user" style="width: 16px; height: 16px;"></i>' : '<i data-lucide="bot" style="width: 16px; height: 16px;"></i>';
+        
+        const contentDiv = document.createElement("div");
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble" + (isEmergency ? " is-emergency" : "");
+        bubble.textContent = text;
+        contentDiv.appendChild(bubble);
+
+        if (modelTag) {
+            const tag = document.createElement("span");
+            tag.className = "chat-model-tag";
+            tag.textContent = modelTag;
+            contentDiv.appendChild(tag);
+        }
+
+        wrap.appendChild(avatar);
+        wrap.appendChild(contentDiv);
+        chatStream.appendChild(wrap);
+        if (window.lucide) lucide.createIcons();
+        chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    async function sendQuery(queryText) {
+        if (!queryText || !queryText.trim()) return;
+        appendMessage("user", queryText, false, null);
+        if (inputField) inputField.value = "";
+        if (sendBtn) sendBtn.disabled = true;
+
+        // Show typing indicator
+        const typingWrap = document.createElement("div");
+        typingWrap.className = "chat-bubble-wrap bot typing";
+        typingWrap.id = "typingIndicator";
+        typingWrap.innerHTML = `
+            <div class="chat-bubble-avatar"><i data-lucide="bot" style="width: 16px; height: 16px;"></i></div>
+            <div class="chat-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>
+        `;
+        chatStream.appendChild(typingWrap);
+        if (window.lucide) lucide.createIcons();
+        chatStream.scrollTop = chatStream.scrollHeight;
+
+        try {
+            const targetId = scanId || 1;
+            const resp = await fetch(`/api/v1/explain/${targetId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: queryText, language: activeLang })
+            });
+            const data = await resp.json();
+            document.getElementById("typingIndicator")?.remove();
+            
+            const modelLabel = data.model_used === "qwen2.5:7b" 
+                ? "⚡ Qwen 2.5 7B (Local LLM) · Guardrails Enforced" 
+                : data.model_used === "emergency_firewall" 
+                ? "🚨 MediAssist Emergency Firewall" 
+                : "🛡️ MediAssist Clinical Guardrail Generator";
+
+            appendMessage("bot", data.response, data.is_emergency, modelLabel);
+        } catch (err) {
+            document.getElementById("typingIndicator")?.remove();
+            appendMessage("bot", "Network connection error. Please try again.", false, "System Error");
+        } finally {
+            if (sendBtn) sendBtn.disabled = false;
+        }
+    }
+
+    chipBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const q = btn.dataset.query;
+            sendQuery(q);
+        });
+    });
+
+    sendBtn?.addEventListener("click", () => sendQuery(inputField?.value || ""));
+    inputField?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            sendQuery(inputField.value);
+        }
+    });
 
     // Print button handler
     const printBtn = document.getElementById("printReportButton");

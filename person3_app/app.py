@@ -2541,6 +2541,19 @@ def create_app() -> Flask:
         report = analyze_model_shortcuts(img_bgr, modality=modality)
         return jsonify(report)
 
+    @app.route("/api/v1/explain/<int:scan_id>", methods=["POST"])
+    def api_explain_scan(scan_id: int):
+        """Explainable AI endpoint powered by Qwen 2.5 with MediAssist clinical guardrails."""
+        from explainable_ai import explain_scan_findings
+
+        record = scans_active_query().filter_by(id=scan_id).first_or_404()
+        payload = request.get_json(silent=True) or {}
+        question = payload.get("question", "").strip() or "What does my image specifically show?"
+        language = payload.get("language", "en").strip()
+
+        result = explain_scan_findings(record, question=question, language=language)
+        return jsonify(result)
+
     return app
 
 
