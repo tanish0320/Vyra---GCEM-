@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -278,6 +279,9 @@ def load_checkpoint(
 
     if is_dual_head:
         try:
+            repo_root = Path(__file__).resolve().parent.parent if (Path(__file__).resolve().parent.parent / "src").is_dir() else Path(__file__).resolve().parent
+            if str(repo_root) not in sys.path:
+                sys.path.insert(0, str(repo_root))
             from src.models.dual_head_model import DualHeadEfficientNetB3
             model = DualHeadEfficientNetB3(pretrained=False)
             model.load_state_dict(state_dict)
