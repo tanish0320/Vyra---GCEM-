@@ -203,9 +203,6 @@ def about_page():
     )
 
 
-@app.route("/author")
-def author_page():
-    return render_template("author.html")
 
 
 @app.errorhandler(404)

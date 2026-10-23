@@ -114,7 +114,7 @@ All routes are registered inside `create_app()` in `app.py` (`lines 1294–1717`
 | `/media/uploads/<path:filename>` | `GET` | `uploaded_media(filename)` | URL param `filename` | Serves file from `UPLOADS_DIR` (`static/uploads`) or falls back to `MediaFile` DB blob (`404` if missing). | **200 OK** |
 | `/media/gradcam/<path:filename>` | `GET` | `gradcam_media(filename)` | URL param `filename` | Serves file from `GRADCAM_DIR` (`static/gradcam`) or falls back to `MediaFile` DB blob (`404` if missing). | **200 OK** |
 | `/about` | `GET` | `about_page()` | None | Renders `about.html` with `dataset_overview()` and `performance_overview()`. | **200 OK** |
-| `/author` | `GET` | `author_page()` | None | Renders `author.html`. | **200 OK** |
+| `/eda` | `GET` | `eda_page()` | None | Renders `eda.html` with full dataset inventory, zero-leakage audit, and benchmark plots. | **200 OK** |
 | `/health` | `GET` | `health()` | None | Returns `200` JSON readiness dictionary. | **200 OK** |
 
 ---
@@ -212,7 +212,7 @@ All routes are registered inside `create_app()` in `app.py` (`lines 1294–1717`
 
 | Capability | Status | Details |
 | :--- | :--- | :--- |
-| Flask Web Server & HTML Routes (`/`, `/scan`, `/history`, `/analytics`, `/about`, `/author`, `/health`) | **EXISTING & VERIFIED** | Runs on `http://127.0.0.1:5000`; all GET routes return `HTTP 200`. |
+| Flask Web Server & HTML Routes (`/`, `/scan`, `/history`, `/analytics`, `/eda`, `/about`, `/health`) | **EXISTING & VERIFIED** | Runs on `http://127.0.0.1:5000`; all GET routes return `HTTP 200`. |
 | Client-Side Upload Dropzone & Rear-Camera Capture UI (`scan.html`, `upload.js`) | **EXISTING (Code Verified; Camera Hardware Untested)** | Drag-and-drop, `getUserMedia` with `facingMode: { ideal: "environment" }`, client Laplacian/brightness check. |
 | Server-Side Image Format, Resolution, Blur & Lighting Gate (`image_validator.py`) | **EXISTING & VERIFIED** | Tested on valid, `<100x100`, dark/blurry, and `.txt` inputs. Note pre-validation resize bug in `app.py`. |
 | SQLite Persistence, FTS5 Search, Soft-Delete & CSV Export | **EXISTING & VERIFIED** | `scans`, `media_files`, `rate_limit_events`, `scan_name_fts` verified working. |

@@ -52,7 +52,6 @@
                 <a class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}">Analytics</a>
                 <a class="nav-link {% if request.endpoint == 'eda_page' %}active{% endif %}" href="{{ url_for('eda_page') }}">Research &amp; EDA</a>
                 <a class="nav-link {% if request.endpoint == 'about_page' %}active{% endif %}" href="{{ url_for('about_page') }}">Docs</a>
-                <a class="nav-link {% if request.endpoint == 'author_page' %}active{% endif %}" href="{{ url_for('author_page') }}">Author</a>
             </div>
 
             <div class="nav-actions">
@@ -85,7 +84,6 @@
             <a class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}">Analytics</a>
             <a class="nav-link {% if request.endpoint == 'eda_page' %}active{% endif %}" href="{{ url_for('eda_page') }}">Research &amp; EDA</a>
             <a class="nav-link {% if request.endpoint == 'about_page' %}active{% endif %}" href="{{ url_for('about_page') }}">Docs</a>
-            <a class="nav-link {% if request.endpoint == 'author_page' %}active{% endif %}" href="{{ url_for('author_page') }}">Author</a>
         </div>
     </aside>
 
@@ -114,7 +112,7 @@
                             <span class="brand-name"><strong>AnemiaVision</strong><sup>AI</sup></span>
                         </a>
                         <p style="margin-top:1rem">Hospital-grade anemia screening from smartphone images with explainable AI.</p>
-                        <p style="margin-top:0.75rem">Developed by <a href="{{ url_for('author_page') }}" class="footer-credit-link">Rahul Patel</a>, B.Tech ECE student at IIIT Surat.</p>
+                        <p style="margin-top:0.75rem">Developed by Rahul Patel, B.Tech ECE student at IIIT Surat.</p>
                         <p style="margin-top:0.75rem">{{ disclaimer_text }}</p>
                     </div>
                     <div>
@@ -125,7 +123,6 @@
                             <a href="{{ url_for('analytics_page') }}">Analytics</a>
                             <a href="{{ url_for('eda_page') }}">Research &amp; EDA</a>
                             <a href="{{ url_for('about_page') }}">Docs</a>
-                            <a href="{{ url_for('author_page') }}">Author</a>
                         </div>
                     </div>
                     <div>
