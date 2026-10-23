@@ -227,7 +227,8 @@ class AnemiaPredictor:
             for images, labels in dataloaders.valid_loader:
                 images = images.to(self.device, non_blocking=TRAINING_CONFIG.pin_memory)
                 with autocast_context():
-                    logits = self.model(images)
+                    raw_out = self.model(images)
+                    logits = raw_out[0] if isinstance(raw_out, (tuple, list)) else raw_out
                 logits_batches.append(logits.detach().float().cpu())
                 label_batches.append(labels.detach().cpu())
 
@@ -284,7 +285,8 @@ class AnemiaPredictor:
         self.model.eval()
         with torch.no_grad():
             with autocast_context():
-                raw_logits = self.model(input_tensor)
+                raw_out = self.model(input_tensor)
+                raw_logits = raw_out[0] if isinstance(raw_out, (tuple, list)) else raw_out
             calibrated_logits = self.temperature_scaler.scale(raw_logits.float())
             probabilities = torch.softmax(calibrated_logits, dim=1).squeeze(0).cpu()
 

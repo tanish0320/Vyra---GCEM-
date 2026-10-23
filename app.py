@@ -39,6 +39,7 @@ from config import (
     API_RATE_LIMIT_PER_MINUTE,
     API_RATE_LIMIT_WINDOW_SECONDS,
     BEST_CHECKPOINT_PATH,
+    PROJECT_ROOT,
     DATABASE_BACKEND,
     ENABLE_GRADCAM,
     EVALUATION_LOGS_DIR,
@@ -334,7 +335,8 @@ def warm_predictor_runtime(predictor: AnemiaPredictor) -> None:
         )
         with torch.no_grad():
             with autocast_context():
-                logits = predictor.model(warm_tensor)
+                raw_out = predictor.model(warm_tensor)
+                logits = raw_out[0] if isinstance(raw_out, (tuple, list)) else raw_out
             predictor.temperature_scaler.scale(logits.float())
     except Exception:
         pass
@@ -1139,19 +1141,38 @@ def performance_overview() -> dict[str, Any]:
 
     candidate_paths = [
         EVALUATION_LOGS_DIR / "test_summary.json",
+        PROJECT_ROOT / "evaluation" / "metrics" / "champion_test_report.json",
         LOGS_DIR / "final_test_summary.json",
     ]
 
     for path in candidate_paths:
         if path.exists():
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            cls_data = payload.get("classification") if isinstance(payload.get("classification"), dict) else payload
+            raw_acc = cls_data.get("accuracy")
+            acc_val = float(raw_acc) if raw_acc is not None else 0.639
+            if acc_val > 1.0:
+                acc_val = acc_val / 100.0
+            sens = cls_data.get("sensitivity_recall") or cls_data.get("sensitivity")
+            spec = cls_data.get("specificity")
+            auc = cls_data.get("roc_auc") or cls_data.get("auc_roc")
             return {
-                "accuracy_badge": round(float(payload.get("accuracy", 0.924)) * 100, 1),
-                "accuracy": payload.get("accuracy"),
-                "sensitivity": payload.get("sensitivity"),
-                "specificity": payload.get("specificity"),
-                "auc_roc": payload.get("auc_roc"),
-                "source": "latest evaluation artifact",
+                "accuracy_badge": round(acc_val * 100, 1),
+                "accuracy": acc_val,
+                "sensitivity": float(sens) if sens is not None else None,
+                "specificity": float(spec) if spec is not None else None,
+                "auc_roc": float(auc) if auc is not None else None,
+                "regression": payload.get("hemoglobin_regression"),
+                "source": (
+                    f"champion held-out evaluation ({path.name})"
+                    if "champion" in path.name
+                    else f"evaluation artifact ({path.name})"
+                ),
             }
 
     from_ckpt = _metrics_from_deployed_checkpoint()

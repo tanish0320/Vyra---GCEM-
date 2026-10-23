@@ -267,7 +267,27 @@ def load_checkpoint(
     except TypeError:
         checkpoint = torch.load(checkpoint_path, map_location=device)
     state_dict = checkpoint["model_state_dict"] if "model_state_dict" in checkpoint else checkpoint
-    architecture = checkpoint.get("architecture", "efficientnet_b3")
+    is_dual_head = False
+    if isinstance(state_dict, dict):
+        is_dual_head = (
+            "classifier_head.0.weight" in state_dict
+            or "classifier_head.4.weight" in state_dict
+            or "regression_head.0.weight" in state_dict
+            or (isinstance(checkpoint, dict) and checkpoint.get("has_validated_regression") is not None)
+        )
+
+    if is_dual_head:
+        try:
+            from src.models.dual_head_model import DualHeadEfficientNetB3
+            model = DualHeadEfficientNetB3(pretrained=False)
+            model.load_state_dict(state_dict)
+            model.to(device)
+            model.eval()
+            return model, checkpoint
+        except ImportError:
+            pass
+
+    architecture = checkpoint.get("architecture", "efficientnet_b3") if isinstance(checkpoint, dict) else "efficientnet_b3"
     model = build_model(pretrained=pretrained_fallback, architecture=architecture)
     model.load_state_dict(state_dict)
     model.to(device)

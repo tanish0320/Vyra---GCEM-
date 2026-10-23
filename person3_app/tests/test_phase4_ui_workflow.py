@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import io
+import sys
 from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 from typing import Any
 
 import numpy as np
@@ -12,6 +16,8 @@ import pytest
 
 import app as vyra_app
 import config as config_module
+import model as model_module
+import service_adapter as adapter_module
 from service_adapter import (
     UNAVAILABLE_HB_MESSAGE,
     set_test_normalizer,
@@ -75,16 +81,15 @@ def client():
         yield test_client
 
 
-def test_scan_page_renders_chw_intake_modality_and_honest_lfs_state(client):
-    """Verify /scan renders modality cards, intake fields, 3-stage processing overlay, and honest LFS state."""
+def test_scan_page_renders_chw_intake_modality_and_honest_lfs_state(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Verify /scan renders modality cards, intake fields, 3-stage processing overlay, and honest readiness/LFS states."""
+    # 1. Real weights loaded -> Model Ready
+    vyra_app.get_predictor()
     resp = client.get("/scan")
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
-
-    # Honest Model Unavailable state when checkpoint is Git LFS pointer
-    assert "Model Unavailable" in html
-    assert "Git LFS Pointer Detected" in html
-    assert 'data-model-state="unavailable"' in html
+    assert "Model Ready" in html
+    assert 'data-model-state="ready"' in html
 
     # Modality selector cards & guidance
     assert 'data-modality="conjunctiva"' in html
@@ -99,6 +104,28 @@ def test_scan_page_renders_chw_intake_modality_and_honest_lfs_state(client):
     assert "1. Image Upload &amp; Quality Gate" in html
     assert "2. Optical Normalization &amp; Feature Extraction" in html
     assert "3. AI Screening &amp; Triage" in html
+
+    # 2. Honest Model Unavailable state when checkpoint is an LFS pointer
+    fake_lfs = tmp_path / "pointer.pth"
+    fake_lfs.write_text(
+        "version https://git-lfs.github.com/spec/v1\noid sha256:123\nsize 100\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(model_module, "BEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(model_module, "LATEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(vyra_app, "BEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(vyra_app, "_predictor", None)
+    monkeypatch.setattr(vyra_app, "predictor_loaded", lambda: False)
+    monkeypatch.setattr(vyra_app, "resolve_person2_predict_callable", lambda: None)
+    monkeypatch.setattr(adapter_module, "_INJECTED_PREDICTOR_FN", None)
+    monkeypatch.setattr(adapter_module, "resolve_person2_predict_callable", lambda: None)
+
+    resp_lfs = client.get("/scan")
+    assert resp_lfs.status_code == 200
+    html_lfs = resp_lfs.get_data(as_text=True)
+    assert "Model Unavailable" in html_lfs
+    assert "Git LFS Pointer Detected" in html_lfs
+    assert 'data-model-state="unavailable"' in html_lfs
 
 
 def test_scan_page_renders_model_ready_when_predictor_available(client):

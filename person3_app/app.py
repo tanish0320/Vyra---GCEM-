@@ -40,6 +40,7 @@ from config import (
     API_RATE_LIMIT_PER_MINUTE,
     API_RATE_LIMIT_WINDOW_SECONDS,
     BEST_CHECKPOINT_PATH,
+    PROJECT_ROOT,
     DATABASE_BACKEND,
     ENABLE_GRADCAM,
     EVALUATION_LOGS_DIR,
@@ -244,7 +245,12 @@ class Scan(db.Model):
         """Resolve the uploaded image into the media-serving route."""
 
         filename = extract_storage_filename(self.image_path)
-        return url_for("uploaded_media", filename=filename) if filename else ""
+        if not filename:
+            return ""
+        try:
+            return url_for("uploaded_media", filename=filename)
+        except RuntimeError:
+            return f"/media/uploads/{filename}"
 
     @property
     def normalized_image_url(self) -> str | None:
@@ -253,7 +259,12 @@ class Scan(db.Model):
         if not self.normalized_image_path:
             return None
         filename = extract_storage_filename(self.normalized_image_path)
-        return url_for("uploaded_media", filename=filename) if filename else None
+        if not filename:
+            return None
+        try:
+            return url_for("uploaded_media", filename=filename)
+        except RuntimeError:
+            return f"/media/uploads/{filename}"
 
     @property
     def gradcam_url(self) -> str | None:
@@ -262,7 +273,12 @@ class Scan(db.Model):
         if not self.gradcam_path:
             return None
         filename = extract_storage_filename(self.gradcam_path)
-        return url_for("gradcam_media", filename=filename) if filename else None
+        if not filename:
+            return None
+        try:
+            return url_for("gradcam_media", filename=filename)
+        except RuntimeError:
+            return f"/media/gradcam/{filename}"
 
     @property
     def image_file_path(self) -> Path | None:
@@ -405,9 +421,9 @@ def get_predictor() -> AnemiaPredictor:
 
 
 def predictor_loaded() -> bool:
-    """Return whether this worker has a ready predictor or Person 2 callable."""
+    """Return whether this worker has a ready predictor."""
 
-    return _predictor is not None or resolve_person2_predict_callable() is not None
+    return _predictor is not None
 
 
 def eager_load_predictor() -> None:
@@ -446,7 +462,8 @@ def warm_predictor_runtime(predictor: AnemiaPredictor) -> None:
         )
         with torch.no_grad():
             with autocast_context():
-                logits = predictor.model(warm_tensor)
+                raw_out = predictor.model(warm_tensor)
+                logits = raw_out[0] if isinstance(raw_out, (tuple, list)) else raw_out
             predictor.temperature_scaler.scale(logits.float())
     except Exception:
         pass
@@ -1379,8 +1396,11 @@ def performance_overview() -> dict[str, Any]:
     Never returns hardcoded/invented benchmark numbers when evaluation artifacts are missing.
     """
 
+    repo_dir = PROJECT_ROOT.parent if (PROJECT_ROOT.parent / "evaluation").is_dir() else PROJECT_ROOT
     candidate_paths = [
         EVALUATION_LOGS_DIR / "test_summary.json",
+        repo_dir / "evaluation" / "metrics" / "champion_test_report.json",
+        PROJECT_ROOT / "evaluation" / "metrics" / "champion_test_report.json",
         LOGS_DIR / "final_test_summary.json",
     ]
 
@@ -1393,7 +1413,8 @@ def performance_overview() -> dict[str, Any]:
             if not isinstance(payload, dict):
                 continue
 
-            raw_acc = payload.get("accuracy")
+            cls_data = payload.get("classification") if isinstance(payload.get("classification"), dict) else payload
+            raw_acc = cls_data.get("accuracy")
             acc_val: float | None = None
             if raw_acc is not None:
                 try:
@@ -1403,14 +1424,23 @@ def performance_overview() -> dict[str, Any]:
                 except (TypeError, ValueError):
                     acc_val = None
 
+            sens = cls_data.get("sensitivity_recall") or cls_data.get("sensitivity")
+            spec = cls_data.get("specificity")
+            auc = cls_data.get("roc_auc") or cls_data.get("auc_roc")
+
             return {
                 "available": True,
                 "accuracy_badge": round(acc_val * 100, 1) if acc_val is not None else None,
                 "accuracy": acc_val,
-                "sensitivity": payload.get("sensitivity"),
-                "specificity": payload.get("specificity"),
-                "auc_roc": payload.get("auc_roc"),
-                "source": f"evaluation artifact ({path.name})",
+                "sensitivity": float(sens) if sens is not None else None,
+                "specificity": float(spec) if spec is not None else None,
+                "auc_roc": float(auc) if auc is not None else None,
+                "regression": payload.get("hemoglobin_regression"),
+                "source": (
+                    f"champion held-out evaluation ({path.name})"
+                    if "champion" in path.name
+                    else f"evaluation artifact ({path.name})"
+                ),
             }
 
     from_ckpt = _metrics_from_deployed_checkpoint()

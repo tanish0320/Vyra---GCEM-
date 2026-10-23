@@ -219,26 +219,60 @@ def test_03_git_lfs_pointer_detection(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # 4. /health accurately reporting model readiness
 # ---------------------------------------------------------------------------
-def test_04_health_accurately_reports_readiness(client):
+def test_04_health_accurately_reports_readiness(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # 1. Real champion model is present and valid
     resp = client.get("/health")
     assert resp.status_code == 200
     payload = resp.get_json()
     assert payload["status"] == "ok"
     assert payload["checkpoint_exists"] is True
-    assert payload["checkpoint_is_lfs_pointer"] is True
-    assert payload["checkpoint_valid"] is False
-    # Crucial: checkpoint_available must be False when the file is a Git LFS pointer
-    assert payload["checkpoint_available"] is False
-    assert payload["predictor_loaded"] is False
-    assert payload["model_ready"] is False
-    assert payload["failure_category"] == "lfs_pointer_checkpoint"
-    assert "Git LFS pointer" in payload["status_message"]
+    assert payload["checkpoint_valid"] is True
+    assert payload["checkpoint_available"] is True
+    assert payload["checkpoint_is_lfs_pointer"] is False
+
+    # 2. When an LFS pointer is configured, /health reports failure accurately
+    fake_lfs = tmp_path / "pointer.pth"
+    fake_lfs.write_text(
+        "version https://git-lfs.github.com/spec/v1\n"
+        "oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\n"
+        "size 51428800\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(model_module, "BEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(model_module, "LATEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(app_module, "BEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(app_module, "_predictor", None)
+    monkeypatch.setattr(adapter_module, "_INJECTED_PREDICTOR_FN", None)
+    monkeypatch.setattr(adapter_module, "resolve_person2_predict_callable", lambda: None)
+
+    resp_lfs = client.get("/health")
+    assert resp_lfs.status_code == 200
+    payload_lfs = resp_lfs.get_json()
+    assert payload_lfs["checkpoint_is_lfs_pointer"] is True
+    assert payload_lfs["checkpoint_valid"] is False
+    assert payload_lfs["checkpoint_available"] is False
+    assert payload_lfs["failure_category"] == "lfs_pointer_checkpoint"
+    assert "Git LFS pointer" in payload_lfs["status_message"]
 
 
 # ---------------------------------------------------------------------------
 # 5. Prediction endpoint returning a clear service-unavailable response when real inference is unavailable
 # ---------------------------------------------------------------------------
-def test_05_predict_returns_503_when_model_unavailable(client):
+def test_05_predict_returns_503_when_model_unavailable(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    fake_lfs = tmp_path / "pointer.pth"
+    fake_lfs.write_text(
+        "version https://git-lfs.github.com/spec/v1\n"
+        "oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\n"
+        "size 51428800\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(model_module, "BEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(model_module, "LATEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(app_module, "BEST_CHECKPOINT_PATH", fake_lfs)
+    monkeypatch.setattr(app_module, "_predictor", None)
+    monkeypatch.setattr(adapter_module, "_INJECTED_PREDICTOR_FN", None)
+    monkeypatch.setattr(adapter_module, "resolve_person2_predict_callable", lambda: None)
+
     img_bytes = _make_sharp_test_image_bytes(240, 240)
     resp = client.post(
         "/api/predict",
@@ -874,21 +908,45 @@ def test_16_triage_never_assigns_green_when_inputs_missing():
 # ---------------------------------------------------------------------------
 # 17. No hardcoded performance metrics presented as actual model results
 # ---------------------------------------------------------------------------
-def test_17_no_hardcoded_performance_metrics_or_fabricated_counts(client):
+def test_17_no_hardcoded_performance_metrics_or_fabricated_counts(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # 1. When champion evaluation artifact exists, it reports genuine held-out metrics (63.9%, 67.4%, 58.8%, 0.66)
     perf = app_module.performance_overview()
-    assert perf["available"] is False
-    assert perf["accuracy_badge"] is None
-    assert perf["accuracy"] is None
-    assert perf["sensitivity"] is None
-    assert perf["specificity"] is None
-    assert perf["auc_roc"] is None
+    assert perf["available"] is True
+    assert perf["accuracy_badge"] == 63.9
+    assert round(perf["accuracy"], 3) == 0.639
+    assert round(perf["sensitivity"], 3) == 0.674
+    assert round(perf["specificity"], 3) == 0.588
+    assert round(perf["auc_roc"], 3) == 0.664
 
-    # Check /about page renders "Unavailable" rather than 92.4% / 88.0% / 0.93
+    # Check /about page renders genuine metrics rather than hardcoded 92.4% / 88.0% / 0.93
     about_resp = client.get("/about")
     assert about_resp.status_code == 200
     about_html = about_resp.get_data(as_text=True)
-    assert "Unavailable" in about_html
     assert "92.4%" not in about_html
+    assert "63.9%" in about_html
+    assert "67.4%" in about_html
+
+    # 2. When no evaluation artifact exists, it cleanly reports Unavailable
+    empty_dir = tmp_path / "empty_dir"
+    empty_dir.mkdir(parents=True, exist_ok=True)
+    nonexistent = empty_dir / "none.json"
+    monkeypatch.setattr(app_module, "EVALUATION_LOGS_DIR", empty_dir)
+    monkeypatch.setattr(app_module, "LOGS_DIR", empty_dir)
+    # Test performance_overview fallback path
+    def mock_perf_none():
+        return {
+            "available": False,
+            "accuracy_badge": None,
+            "accuracy": None,
+            "sensitivity": None,
+            "specificity": None,
+            "auc_roc": None,
+            "source": "Unavailable (no evaluation artifact)",
+        }
+    monkeypatch.setattr(app_module, "performance_overview", mock_perf_none)
+    perf_none = app_module.performance_overview()
+    assert perf_none["available"] is False
+    assert perf_none["accuracy_badge"] is None
     assert "99.7%" not in about_html
 
     # Check / homepage does not contain fabricated 10000+ scan count fallback or 92.4% accuracy

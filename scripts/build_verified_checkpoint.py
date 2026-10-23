@@ -1,12 +1,13 @@
-"""Build and verify the DualHeadEfficientNetB3 checkpoint from committed dataset manifests.
+"""[DEPRECATED - DO NOT USE FOR PRODUCTION] Placeholder Checkpoint Generator.
 
-Because `checkpoints/*.pth` and `models/*.pth` were gitignored when `origin/main` was pushed,
-this script trains `DualHeadEfficientNetB3` against the committed 3,234-sample colorimetric
-feature & clinical label manifests (`person1/reports/observed-data/manifests/features.csv`
-and `dataset_inventory.csv`) using Person 2's `MaskedDualLoss` (`alpha=0.70, beta=0.30`,
-`smooth_l1`) and clinical mean Hb bias initialization (`10.75 g/dL`), embeds the validation-
-fitted temperature (`T = 1.3391530513763428`), and writes `checkpoints/best_dual_head.pth`
-and `models/best_dual_head.pth`.
+WARNING: This script trains only the head projections with a random visual
+backbone and produces placeholder weights (~50-57% accuracy). It was created when
+the real champion weights were not yet present in the Git tree.
+
+The real champion model (MAE 2.06 g/dL, AUC 0.6639, trained on RTX 4060 GPU)
+already exists at `checkpoints/best_dual_head.pth` and `models/best_dual_head.pth`.
+This script is preserved for historical traceability ONLY and refuses to overwrite
+the real champion weights.
 """
 
 from __future__ import annotations
@@ -63,6 +64,14 @@ def _make_sample_images(root: Path) -> None:
 
 
 def main() -> None:
+    # Decision 3 Safety Guard: Never overwrite real champion model
+    real_ckpt = PROJECT_ROOT / "checkpoints" / "best_dual_head.pth"
+    if real_ckpt.exists() and real_ckpt.stat().st_size > 10_000_000:
+        raise RuntimeError(
+            "[SECURITY BLOCKED] Real champion checkpoint already exists at "
+            f"{real_ckpt} ({real_ckpt.stat().st_size:,} bytes). "
+            "build_verified_checkpoint.py is DEPRECATED and refuses to overwrite production weights."
+        )
     torch.manual_seed(42)
     np.random.seed(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

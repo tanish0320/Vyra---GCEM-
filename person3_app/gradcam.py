@@ -165,7 +165,11 @@ class GradCAM:
 
         with torch.enable_grad():
             self.model.zero_grad(set_to_none=True)
-            logits = self.model(input_tensor)
+            raw_output = self.model(input_tensor)
+            if isinstance(raw_output, (tuple, list)):
+                logits = raw_output[0]
+            else:
+                logits = raw_output
 
             if class_index is None:
                 class_index = int(torch.argmax(logits, dim=1).item())
@@ -300,6 +304,8 @@ def apply_attention_colormap(heatmap: np.ndarray) -> np.ndarray:
 def overlay_heatmap(image_rgb: np.ndarray, heatmap: np.ndarray, alpha: float = 0.42) -> np.ndarray:
     """Blend the attention heatmap onto the resized RGB image."""
 
+    if heatmap.shape[:2] != image_rgb.shape[:2]:
+        heatmap = cv2.resize(heatmap, (image_rgb.shape[1], image_rgb.shape[0]), interpolation=cv2.INTER_LINEAR)
     colored = apply_attention_colormap(heatmap)
     overlay = (image_rgb.astype(np.float32) * (1.0 - alpha) + colored.astype(np.float32) * alpha).clip(0, 255)
     return overlay.astype(np.uint8)

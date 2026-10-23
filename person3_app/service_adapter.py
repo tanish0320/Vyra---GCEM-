@@ -17,12 +17,14 @@ import logging
 import math
 import os
 import shutil
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable
 
 import numpy as np
+import torch
 from PIL import Image, ImageOps
 
 from config import BEST_CHECKPOINT_PATH, ENABLE_GRADCAM, FLASK_CONFIG, TRAINING_CONFIG
@@ -451,6 +453,9 @@ def resolve_person2_predict_callable() -> Callable[..., dict[str, Any]] | None:
         return _INJECTED_PREDICTOR_FN
 
     try:
+        repo_root = Path(__file__).resolve().parent.parent
+        if (repo_root / "src").is_dir() and str(repo_root) not in sys.path:
+            sys.path.insert(0, str(repo_root))
         module = importlib.import_module("src.inference.predictor")
         predict_fn = getattr(module, "predict", None)
         if callable(predict_fn):
@@ -467,10 +472,16 @@ def resolve_person1_normalizer_callable() -> Callable[..., Any] | None:
     if _INJECTED_NORMALIZER_FN is not None:
         return _INJECTED_NORMALIZER_FN
 
-    for module_name in ("normalization", "src.preprocessing.normalization", "src.cv.normalization"):
+    for module_name in (
+        "vyra_preprocessing",
+        "vyra_preprocessing.pipeline",
+        "normalization",
+        "src.preprocessing.normalization",
+        "src.cv.normalization",
+    ):
         try:
             module = importlib.import_module(module_name)
-            for attr_name in ("normalize_image", "preprocess_and_normalize", "run_normalization"):
+            for attr_name in ("preprocess_image", "normalize_image", "preprocess_and_normalize", "run_normalization"):
                 candidate = getattr(module, attr_name, None)
                 if callable(candidate):
                     return candidate
@@ -1397,6 +1408,40 @@ def run_vyra_predict(
                 gradcam_path = f"gradcam/{candidate_path.name}"
             else:
                 gradcam_path = None
+        elif gradcam_path is None and ENABLE_GRADCAM and isinstance(raw_result, dict) and not raw_result.get("error"):
+            try:
+                model_to_use = None
+                import src.inference.predictor as pred_module
+                if getattr(pred_module, "_GLOBAL_ENGINE", None) and pred_module._GLOBAL_ENGINE.model is not None:
+                    model_to_use = pred_module._GLOBAL_ENGINE.model
+                elif fallback_predictor is not None:
+                    model_to_use = fallback_predictor.model
+
+                if model_to_use is not None:
+                    from gradcam import generate_and_save_gradcam
+                    import cv2
+                    img_bgr = cv2.imread(str(normalized_stage.model_input_path))
+                    if img_bgr is not None:
+                        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+                        img_resized = cv2.resize(img_rgb, (224, 224)).astype(np.float32) / 255.0
+                        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+                        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+                        img_norm = (img_resized - mean) / std
+                        dev = next(model_to_use.parameters()).device
+                        inp_tensor = torch.tensor(img_norm.transpose(2, 0, 1), dtype=torch.float32).unsqueeze(0).to(dev)
+                        pred_class_idx = 1 if (raw_result.get("predicted_class") == "anemic" or (raw_result.get("anemia_probability") or 0.0) >= resolved_threshold) else 0
+                        gradcam_dir = Path(FLASK_CONFIG.gradcam_folder)
+                        gradcam_dir.mkdir(parents=True, exist_ok=True)
+                        artifacts = generate_and_save_gradcam(
+                            model=model_to_use,
+                            image_path=normalized_stage.model_input_path,
+                            input_tensor=inp_tensor,
+                            predicted_class_index=pred_class_idx,
+                            output_dir=gradcam_dir,
+                        )
+                        gradcam_path = f"gradcam/{artifacts.output_path.name}"
+            except Exception as exc:
+                logger.debug("Automatic Grad-CAM generation skipped: %s", exc)
     elif fallback_predictor is not None:
         try:
             raw_result, gradcam_path = _run_legacy_predictor_bridge(

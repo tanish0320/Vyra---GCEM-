@@ -206,6 +206,7 @@ RUNTIME_ROOT = resolve_runtime_root()
 RUNTIME_MEDIA_ROOT = RUNTIME_ROOT / "media" if RUNTIME_ROOT is not None else None
 
 MODELS_DIR = resolve_path(os.getenv("ANEMIA_MODELS_DIR", PROJECT_ROOT / "models"))
+CHECKPOINTS_DIR = resolve_path(os.getenv("ANEMIA_CHECKPOINTS_DIR", PROJECT_ROOT / "checkpoints"))
 STATIC_DIR = resolve_path(os.getenv("ANEMIA_STATIC_DIR", PROJECT_ROOT / "static"))
 TEMPLATES_DIR = resolve_path(os.getenv("ANEMIA_TEMPLATES_DIR", PROJECT_ROOT / "templates"))
 DATABASE_DIR = resolve_path(
@@ -232,13 +233,19 @@ DATABASE_URI = build_database_uri()
 DATABASE_BACKEND = database_backend_name(DATABASE_URI)
 _DEFAULT_BEST_CHECKPOINT = first_existing_path(
     [
-        MODELS_DIR / "20260428_2028_best_model.pth",
+        CHECKPOINTS_DIR / "best_dual_head.pth",
+        MODELS_DIR / "best_dual_head.pth",
+        CHECKPOINTS_DIR / "champion_joint_dualhead.pth",
         MODELS_DIR / "best_model.pth",
+        MODELS_DIR / "20260428_2028_best_model.pth",
     ]
 )
 BEST_CHECKPOINT_PATH = resolve_path(os.getenv("ANEMIA_BEST_CHECKPOINT", str(_DEFAULT_BEST_CHECKPOINT)))
 _DEFAULT_LATEST_CHECKPOINT = first_existing_path(
     [
+        CHECKPOINTS_DIR / "best_dual_head.pth",
+        MODELS_DIR / "best_dual_head.pth",
+        CHECKPOINTS_DIR / "champion_joint_dualhead.pth",
         MODELS_DIR / "20260428_2028_last_checkpoint.pth",
         MODELS_DIR / "last_checkpoint.pth",
     ]
