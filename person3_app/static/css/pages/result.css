@@ -687,3 +687,294 @@
         grid-template-columns: 1.2fr 0.8fr;
     }
 }
+
+/* --- Grad-CAM Interactive Blend & Biophysical Spectroscopy Styles --- */
+.explainability-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.blend-mode-toggles {
+    display: inline-flex;
+    gap: 0.4rem;
+}
+
+.btn-outline-cyan {
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.btn-outline-cyan.active,
+.btn-outline-cyan:hover {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+.slider-readout {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.biophysical-card {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: grid;
+    gap: 1rem;
+}
+
+.biophysical-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.biophysical-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    color: #f8fafc;
+}
+
+.biophysical-title strong {
+    display: block;
+    font-size: 0.95rem;
+}
+
+.biophysical-title span {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.biophysical-badge {
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.is-perfusion-good {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.is-perfusion-pallor {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.erythema-gauge-block {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.erythema-gauge-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.erythema-gauge-bar {
+    height: 10px;
+    width: 100%;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.erythema-gauge-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 45%, #10b981 100%);
+    transition: width 0.4s ease;
+}
+
+.erythema-gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0.75;
+}
+
+.chromophore-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.chromophore-item {
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: grid;
+    gap: 0.15rem;
+}
+
+.chromophore-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.chromophore-val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.text-rose {
+    color: #fb7185;
+}
+
+.text-amber {
+    color: #fbbf24;
+}
+
+.text-cyan {
+    color: #38bdf8;
+}
+
+/* --- Multimodal Dual-Head Convergence Dashboard (Result Page) --- */
+.multimodal-results-card {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 70%), rgba(11, 15, 25, 0.85);
+    border-radius: var(--radius-lg);
+    display: grid;
+    gap: 1.25rem;
+}
+
+.multimodal-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.concordance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.is-concordance-high {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+}
+
+.multimodal-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .multimodal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.multimodal-site-card {
+    padding: 1rem 1.2rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.site-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.site-card-top strong {
+    display: block;
+    font-size: 0.95rem;
+    color: #f8fafc;
+}
+
+.site-card-top span {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.multimodal-consensus-card {
+    text-align: center;
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-md);
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px dashed rgba(56, 189, 248, 0.4);
+    display: grid;
+    gap: 0.2rem;
+}
+
+.consensus-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.consensus-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.agreement-tag {
+    font-size: 0.72rem;
+    color: #34d399;
+    font-weight: 600;
+}
+
+.multimodal-insight-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    margin: 0;
+}
+
+.multimodal-insight-note i {
+    color: #38bdf8;
+    flex-shrink: 0;
+    margin-top: 2px;
+}

@@ -142,12 +142,61 @@
 
                     <div class="tab-pane" id="camera-pane" role="tabpanel" aria-labelledby="camera-tab">
                         <div class="camera-shell">
-                            <video id="cameraFeed" class="camera-feed" playsinline autoplay muted></video>
-                            <canvas id="cameraCanvas" class="d-none"></canvas>
+                            <div class="camera-viewport-wrap" id="cameraViewportWrap">
+                                <video id="cameraFeed" class="camera-feed" playsinline autoplay muted></video>
+                                <canvas id="cameraCanvas" class="d-none"></canvas>
+                                
+                                <!-- Live Clinical Reticle HUD Overlay -->
+                                <div class="camera-hud-overlay" id="cameraHudOverlay">
+                                    <div class="hud-top-bar">
+                                        <span class="hud-pill hud-pill--modality" id="hudModalityPill">
+                                            <i data-lucide="eye"></i> <span id="hudModalityLabel">Eye Conjunctiva</span>
+                                        </span>
+                                        <span class="hud-pill hud-pill--status" id="hudQualityPill">
+                                            <span class="hud-dot"></span> <span id="hudQualityText">Awaiting Camera</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- Center Anatomical Targeting Reticle -->
+                                    <div class="camera-reticle-box" id="cameraReticleBox">
+                                        <div class="reticle-corner tl"></div>
+                                        <div class="reticle-corner tr"></div>
+                                        <div class="reticle-corner bl"></div>
+                                        <div class="reticle-corner br"></div>
+                                        
+                                        <!-- Eye Conjunctiva Guide SVG -->
+                                        <div class="reticle-svg-wrap eye-guide" id="reticleEyeGuide">
+                                            <svg viewBox="0 0 200 120" class="reticle-svg">
+                                                <path d="M 20 60 Q 100 10 180 60 Q 100 110 20 60 Z" fill="none" stroke="rgba(56, 189, 248, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
+                                                <circle cx="100" cy="55" r="22" fill="none" stroke="rgba(56, 189, 248, 0.5)" stroke-width="1.5"/>
+                                                <circle cx="100" cy="55" r="8" fill="rgba(56, 189, 248, 0.3)"/>
+                                                <path d="M 40 75 Q 100 115 160 75" fill="none" stroke="#10b981" stroke-width="3.5" class="pulsing-line"/>
+                                                <text x="100" y="105" text-anchor="middle" fill="#10b981" font-size="9" font-weight="700" letter-spacing="1">LOWER CONJUNCTIVA TARGET</text>
+                                            </svg>
+                                        </div>
+
+                                        <!-- Fingernail Bed Guide SVG -->
+                                        <div class="reticle-svg-wrap nail-guide d-none" id="reticleNailGuide">
+                                            <svg viewBox="0 0 200 160" class="reticle-svg">
+                                                <path d="M 50 150 L 50 70 C 50 25 150 25 150 70 L 150 150" fill="none" stroke="rgba(56, 189, 248, 0.45)" stroke-width="2" stroke-dasharray="4 3"/>
+                                                <rect x="70" y="45" width="60" height="70" rx="14" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" stroke-width="3" class="pulsing-box"/>
+                                                <path d="M 78 100 Q 100 88 122 100" fill="none" stroke="rgba(255, 255, 255, 0.7)" stroke-width="2"/>
+                                                <text x="100" y="135" text-anchor="middle" fill="#10b981" font-size="9" font-weight="700" letter-spacing="1">NAIL BED TARGET</text>
+                                            </svg>
+                                        </div>
+
+                                        <div class="reticle-scan-laser" id="reticleScanLaser"></div>
+                                    </div>
+
+                                    <div class="hud-bottom-bar">
+                                        <span id="hudInstruction" class="hud-instruction">Align lower eyelid inside green guide &amp; pull down</span>
+                                    </div>
+                                </div>
+                            </div>
                             <p id="cameraStatus" class="camera-status">Rear camera is preferred. Keep the image sharp and evenly lit.</p>
                             <div class="camera-actions">
-                                <button class="btn btn-outline-secondary" type="button" id="startCameraButton"><i data-lucide="video"></i> Start</button>
-                                <button class="btn btn-primary" type="button" id="captureButton"><i data-lucide="scan-line"></i> Capture</button>
+                                <button class="btn btn-outline-secondary" type="button" id="startCameraButton"><i data-lucide="video"></i> Start Camera</button>
+                                <button class="btn btn-primary" type="button" id="captureButton"><i data-lucide="scan-line"></i> Capture Scan</button>
                                 <button class="btn btn-outline-secondary d-none" type="button" id="retakeButton"><i data-lucide="rotate-ccw"></i> Retake</button>
                                 <button class="btn btn-success d-none" type="button" id="confirmCaptureButton"><i data-lucide="check"></i> Use Photo</button>
                             </div>
@@ -169,6 +218,29 @@
                         <span id="qualityDimensions" class="quality-dimensions"></span>
                     </div>
                     <small id="qualityScore">Upload or capture an image to run client-side resolution, lighting, and focus checks.</small>
+                </div>
+
+                <!-- Multimodal Cross-Validation (Dual-Site Scan) -->
+                <div class="multimodal-expansion-card" id="multimodalExpansionCard">
+                    <label class="screening-toggle-row" for="dualScanModeCheckbox">
+                        <input type="checkbox" id="dualScanModeCheckbox" name="dual_scan_mode" value="1">
+                        <div>
+                            <strong class="text-gradient"><i data-lucide="sparkles"></i> Multimodal Cross-Validation (Dual-Site Scan)</strong>
+                            <span>Attach a complementary scan (e.g. Fingernail) to execute dual-head cross-referencing for maximum diagnostic confidence.</span>
+                        </div>
+                    </label>
+                    <div id="secondaryScanZone" class="secondary-scan-zone d-none">
+                        <div class="secondary-scan-header">
+                            <span class="section-kicker" id="secondaryScanHeading">Secondary Modality: Fingernail Bed</span>
+                            <span class="pill pill-cyan">Multimodal Fusion</span>
+                        </div>
+                        <label for="secondaryImageInput" class="dropzone dropzone--compact" id="secondaryDropzone">
+                            <input type="file" id="secondaryImageInput" name="secondary_image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="visually-hidden">
+                            <span class="dropzone-icon"><i data-lucide="hand"></i></span>
+                            <strong>Attach Secondary Modality Photo</strong>
+                            <small id="secondaryFileMeta">Select complementary JPEG/PNG scan</small>
+                        </label>
+                    </div>
                 </div>
 
                 <input type="hidden" id="capturedImageData" name="captured_image_data">

@@ -189,6 +189,27 @@ function toggleCameraWarning(show) {
     document.getElementById("cameraHttpWarning")?.classList.toggle("d-none", !show);
 }
 
+function syncCameraHud(modalityKey) {
+    const isFingernail = modalityKey === "fingernail" || modalityKey === "Fingernail";
+    const eyeGuide = document.getElementById("reticleEyeGuide");
+    const nailGuide = document.getElementById("reticleNailGuide");
+    const modalityLabel = document.getElementById("hudModalityLabel");
+    const instruction = document.getElementById("hudInstruction");
+
+    if (eyeGuide && nailGuide) {
+        eyeGuide.classList.toggle("d-none", isFingernail);
+        nailGuide.classList.toggle("d-none", !isFingernail);
+    }
+    if (modalityLabel) {
+        modalityLabel.textContent = isFingernail ? "Fingernail Bed" : "Eye Conjunctiva";
+    }
+    if (instruction) {
+        instruction.textContent = isFingernail
+            ? "Align fingernail bed inside green box & hold steady"
+            : "Align lower eyelid inside green guide & pull down";
+    }
+}
+
 function bindModalitySelector() {
     const cards = Array.from(document.querySelectorAll(".modality-card"));
     const select = document.getElementById("imageType");
@@ -214,6 +235,7 @@ function bindModalitySelector() {
         if (guidanceText) {
             guidanceText.innerHTML = MODALITY_GUIDANCE[normalized];
         }
+        syncCameraHud(normalized);
     };
 
     cards.forEach((card) => {
@@ -328,6 +350,24 @@ function bindUploadZone() {
     });
 
     uploadTabButton?.addEventListener("click", () => toggleCameraWarning(false));
+
+    // Secondary Image Input & Dual-Scan Toggle wiring
+    const dualCheckbox = document.getElementById("dualScanModeCheckbox");
+    const secondaryZone = document.getElementById("secondaryScanZone");
+    const secondaryInput = document.getElementById("secondaryImageInput");
+    const secondaryFileMeta = document.getElementById("secondaryFileMeta");
+
+    dualCheckbox?.addEventListener("change", () => {
+        secondaryZone?.classList.toggle("d-none", !dualCheckbox.checked);
+        if (window.lucide) window.lucide.createIcons();
+    });
+
+    secondaryInput?.addEventListener("change", () => {
+        const file = secondaryInput.files?.[0];
+        if (file && secondaryFileMeta) {
+            secondaryFileMeta.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) · Ready for Dual-Site Fusion`;
+        }
+    });
 }
 
 function bindCameraCapture() {
@@ -350,7 +390,58 @@ function bindCameraCapture() {
         captureButton.classList.toggle("d-none", hasCapture);
     };
 
+    let qualityInterval = null;
+    const hudQualityText = document.getElementById("hudQualityText");
+    const hudQualityPill = document.getElementById("hudQualityPill");
+    const scanLaser = document.getElementById("reticleScanLaser");
+
+    const startLiveAnalysis = () => {
+        if (qualityInterval) clearInterval(qualityInterval);
+        const miniCanvas = document.createElement("canvas");
+        miniCanvas.width = 64;
+        miniCanvas.height = 48;
+        const miniCtx = miniCanvas.getContext("2d", { willReadFrequently: true });
+
+        qualityInterval = setInterval(() => {
+            if (!video.videoWidth || !video.videoHeight || video.paused) return;
+            try {
+                // Sample center 40% of video frame (the reticle zone)
+                const sx = Math.floor(video.videoWidth * 0.3);
+                const sy = Math.floor(video.videoHeight * 0.3);
+                const sw = Math.floor(video.videoWidth * 0.4);
+                const sh = Math.floor(video.videoHeight * 0.4);
+                miniCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 64, 48);
+                const p = miniCtx.getImageData(0, 0, 64, 48).data;
+                let bSum = 0;
+                for (let i = 0; i < p.length; i += 4) {
+                    bSum += 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+                }
+                const avgB = bSum / (p.length / 4);
+
+                if (hudQualityText && hudQualityPill) {
+                    if (avgB < 48) {
+                        hudQualityText.textContent = "Low Light";
+                        hudQualityPill.className = "hud-pill hud-pill--status text-warning";
+                    } else if (avgB > 218) {
+                        hudQualityText.textContent = "Glare Warning";
+                        hudQualityPill.className = "hud-pill hud-pill--status text-warning";
+                    } else {
+                        hudQualityText.textContent = "Optimal Frame";
+                        hudQualityPill.className = "hud-pill hud-pill--status";
+                    }
+                }
+            } catch (err) {
+                // silent fallback
+            }
+        }, 280);
+    };
+
     const stopStreamTracks = () => {
+        if (qualityInterval) {
+            clearInterval(qualityInterval);
+            qualityInterval = null;
+        }
+        if (hudQualityText) hudQualityText.textContent = "Awaiting Camera";
         if (!stream) return;
         stream.getTracks().forEach((track) => track.stop());
         stream = null;
@@ -377,7 +468,11 @@ function bindCameraCapture() {
                 audio: false,
             });
             video.srcObject = stream;
-            setCameraStatus("Camera ready. Frame the eye conjunctiva or fingernail clearly, then capture.");
+            setCameraStatus("Camera ready. Align anatomical target with green reticle, then tap Capture.");
+            video.onloadedmetadata = () => {
+                video.play();
+                startLiveAnalysis();
+            };
         } catch (error) {
             setCameraStatus("Unable to access the camera. Allow permission or switch to file upload.", true);
             uploadTabButton?.click();
@@ -389,6 +484,10 @@ function bindCameraCapture() {
             setCameraStatus("Start the camera first, then capture the image.", true);
             return;
         }
+        if (scanLaser) {
+            scanLaser.classList.add("scanning");
+            setTimeout(() => scanLaser.classList.remove("scanning"), 700);
+        }
         const context = canvas.getContext("2d");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -398,7 +497,7 @@ function bindCameraCapture() {
         if (imageInput) imageInput.value = "";
         showPreviewFromDataUrl(dataUrl);
         toggleCaptureState(true);
-        setCameraStatus("Photo captured. Review the preview and retake if needed.");
+        setCameraStatus("Photo captured & locked. Review quality indicators below or tap Retake.");
     });
 
     retakeButton?.addEventListener("click", () => {

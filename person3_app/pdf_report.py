@@ -168,7 +168,7 @@ def _draw_images(pdf: canvas.Canvas, x: int, y: int, record: Any) -> int:
     """Draw the original image and Grad-CAM image side by side when available."""
 
     image_width = 238
-    image_height = 158
+    image_height = 135
     original_path = resolve_storage_path(getattr(record, "image_path", None), "uploads")
     gradcam_path = (
         resolve_storage_path(getattr(record, "gradcam_path", None), "gradcam")
@@ -230,6 +230,22 @@ def _draw_text_section(pdf: canvas.Canvas, x: int, y: int, title: str, lines: li
     return y - 8
 
 
+def _draw_clinic_stamp_box(pdf: canvas.Canvas, x: int, y: int) -> int:
+    """Render an official CHW / Clinic stamp and signature block."""
+    box_w = 520
+    box_h = 48
+    pdf.setStrokeColor(CARD_BORDER)
+    pdf.setFillColor(colors.HexColor("#F8FAFC"))
+    pdf.roundRect(x, y - box_h, box_w, box_h, 6, fill=1, stroke=1)
+
+    pdf.setFillColor(TEXT_NAVY)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(x + 12, y - 16, "Primary Health Center (PHC) Screening Verification")
+    pdf.setFont("Helvetica", 8)
+    pdf.drawString(x + 12, y - 32, "Screening CHW: ________________________   Sign / Date: ___________________")
+    pdf.drawString(x + 360, y - 32, "[ Official PHC Clinic Stamp ]")
+    return y - box_h - 12
+
 def generate_pdf_report(record: Any, output_path: str | Path | None = None) -> Path:
     """Generate a production-ready screening report PDF with robust fallbacks."""
 
@@ -289,10 +305,14 @@ def generate_pdf_report(record: Any, output_path: str | Path | None = None) -> P
 
     pdf.setFont("Helvetica-Oblique", 8)
     pdf.setFillColor(TEXT_NAVY)
-    disclaimer_lines = _chunk_text(PROTOTYPE_PDF_DISCLAIMER, width=105)
-    footer_y = 32
+    cursor_y = _draw_clinic_stamp_box(pdf, 36, max(68, cursor_y))
+
+    pdf.setFont("Helvetica-Oblique", 7.5)
+    pdf.setFillColor(TEXT_NAVY)
+    disclaimer_lines = _chunk_text(PROTOTYPE_PDF_DISCLAIMER, width=110)
+    footer_y = 26
     for idx, line in enumerate(disclaimer_lines[:2]):
-        pdf.drawString(36, footer_y - idx * 11, line)
+        pdf.drawString(36, footer_y - idx * 10, line)
 
     pdf.save()
     return report_path

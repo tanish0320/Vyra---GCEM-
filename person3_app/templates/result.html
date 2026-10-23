@@ -49,6 +49,69 @@
         </div>
         {% endif %}
 
+        {% if scan.multimodal_fusion %}
+        <!-- Multimodal Dual-Head Cross-Validation Dashboard -->
+        <section class="multimodal-results-card surface-card reveal" id="multimodalResultsCard" aria-labelledby="multimodalHeading">
+            <div class="multimodal-results-header">
+                <div>
+                    <span class="section-kicker">Multimodal Dual-Head Cross-Validation</span>
+                    <h2 id="multimodalHeading" class="text-gradient">Dual-Anatomical Convergence Dashboard</h2>
+                </div>
+                <span class="concordance-badge is-concordance-high">
+                    <i data-lucide="shield-check"></i> {{ scan.multimodal_fusion.concordance_pct }}% Cross-Site Agreement
+                </span>
+            </div>
+
+            <div class="multimodal-grid">
+                <!-- Site 1 Card -->
+                <div class="multimodal-site-card">
+                    <div class="site-card-top">
+                        <i data-lucide="eye"></i>
+                        <div>
+                            <strong>{{ scan.multimodal_fusion.primary_modality }}</strong>
+                            <span>Primary Optical Head</span>
+                        </div>
+                    </div>
+                    <div class="site-card-bottom" style="margin-top: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span class="status-pill {% if scan.multimodal_fusion.primary_class == 'anemic' %}pill-danger{% else %}pill-success{% endif %}">
+                            {{ scan.multimodal_fusion.primary_class|title }}
+                        </span>
+                        <strong class="mono">{{ scan.multimodal_fusion.primary_prob }}% Anemic Prob</strong>
+                    </div>
+                </div>
+
+                <!-- Joint Consensus Badge -->
+                <div class="multimodal-consensus-card">
+                    <div class="consensus-label">Joint Weighted Posterior</div>
+                    <div class="consensus-value mono text-cyan">{{ scan.multimodal_fusion.joint_probability }}%</div>
+                    <span class="agreement-tag">{{ scan.multimodal_fusion.agreement_level }}</span>
+                </div>
+
+                <!-- Site 2 Card -->
+                <div class="multimodal-site-card">
+                    <div class="site-card-top">
+                        <i data-lucide="hand"></i>
+                        <div>
+                            <strong>{{ scan.multimodal_fusion.secondary_modality }}</strong>
+                            <span>Secondary Microvascular Head</span>
+                        </div>
+                    </div>
+                    <div class="site-card-bottom" style="margin-top: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span class="status-pill {% if scan.multimodal_fusion.secondary_class == 'anemic' %}pill-danger{% else %}pill-success{% endif %}">
+                            {{ scan.multimodal_fusion.secondary_class|title }}
+                        </span>
+                        <strong class="mono">{{ scan.multimodal_fusion.secondary_prob }}% Anemic Prob</strong>
+                    </div>
+                </div>
+            </div>
+
+            <p class="multimodal-insight-note">
+                <i data-lucide="info"></i>
+                <span><strong>Clinical Artifact Resistance:</strong> By cross-validating the palpebral mucosal erythema against peripheral fingernail micro-capillaries, the joint model eliminates single-site false positives from cold temperature vasoconstriction or localized ocular hyperaemia.</span>
+            </p>
+        </section>
+        {% endif %}
+
         <!-- Three-Panel Results Experience (Desktop: 3 columns, Mobile: stacked vertically) -->
         <div class="three-panel-results-grid" role="region" aria-label="Three-panel screening results">
             <!-- Panel 1: Image and Quality Panel -->
@@ -203,22 +266,38 @@
                 </dl>
             </article>
 
-            <!-- Panel 3: Explainability Panel -->
+            <!-- Panel 3: Explainability & Biophysical Spectroscopy Panel -->
             <article class="result-panel surface-card reveal" id="panelExplainability" aria-labelledby="panelExplainabilityHeading">
                 <div class="result-panel-header">
-                    <span class="section-kicker">Panel 3 · Model Attribution</span>
-                    <h2 id="panelExplainabilityHeading">Explainability (Grad-CAM)</h2>
+                    <span class="section-kicker">Panel 3 · Model Attribution &amp; Colorimetry</span>
+                    <h2 id="panelExplainabilityHeading">Explainability &amp; Spectroscopy</h2>
                 </div>
 
                 {% if scan.gradcam_url %}
-                <p class="panel-intro">Grad-CAM highlights the regions of the {{ scan.anatomical_modality or "uploaded" }} image that most influenced the model's screening output.</p>
+                <p class="panel-intro">Grad-CAM highlights vascular regions influencing the Dual-Head EfficientNet-B3 network, correlated with biophysical chromophore absorption.</p>
+
+                <div class="explainability-controls">
+                    <div class="blend-mode-toggles" role="group" aria-label="Attribution visualization mode">
+                        <button type="button" class="btn btn-sm btn-outline-cyan active" id="btnModeBlend" data-mode="blend">
+                            <i data-lucide="layers"></i> Heatmap Blend
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnModeSplit" data-mode="split">
+                            <i data-lucide="columns-2"></i> Split Wipe
+                        </button>
+                    </div>
+                    <div class="slider-readout">
+                        <span id="sliderLabel">Overlay Opacity:</span>
+                        <strong id="sliderValue" class="mono text-cyan">60%</strong>
+                    </div>
+                </div>
+
                 <figure class="result-figure comparison-shell">
-                    <div class="comparison">
+                    <div class="comparison" id="gradcamComparison">
                         <img src="{{ scan.image_url }}" alt="Original scan base layer" class="comparison-base" loading="lazy">
                         <img src="{{ scan.gradcam_url }}" alt="Grad-CAM heatmap overlay" class="comparison-overlay" loading="lazy">
-                        <input type="range" min="0" max="100" value="55" class="comparison-slider" aria-label="Compare original and Grad-CAM images">
+                        <input type="range" min="0" max="100" value="60" class="comparison-slider" id="gradcamSlider" aria-label="Adjust Grad-CAM overlay intensity">
                     </div>
-                    <figcaption>Slide to compare Original Image vs. Real Grad-CAM Overlay</figcaption>
+                    <figcaption id="sliderFigcaption">Drag slider to adjust neural attention heatmap blend intensity (0% - 100%)</figcaption>
                 </figure>
                 {% else %}
                 <div class="explainability-unavailable-card" id="explainabilityUnavailableState" role="status">
@@ -229,6 +308,57 @@
                     <p>This prediction did not produce a verified Grad-CAM attribution map. VYRA never generates synthetic or placeholder heatmaps.</p>
                 </div>
                 {% endif %}
+
+                <!-- Biophysical Microvascular Perfusion Card -->
+                <div class="biophysical-card">
+                    <div class="biophysical-header">
+                        <div class="biophysical-title">
+                            <i data-lucide="activity"></i>
+                            <div>
+                                <strong>Biophysical Optical Spectroscopy</strong>
+                                <span>Reflectance chromophores extracted from anatomical ROI</span>
+                            </div>
+                        </div>
+                        <span class="biophysical-badge {% if scan.biophysical_metrics.erythema_index >= 36.0 %}is-perfusion-good{% else %}is-perfusion-pallor{% endif %}">
+                            {{ scan.biophysical_metrics.erythema_category }}
+                        </span>
+                    </div>
+
+                    <!-- Erythema Index Gauge -->
+                    <div class="erythema-gauge-block">
+                        <div class="erythema-gauge-header">
+                            <span>Erythema Index (EI = 100 &times; &Delta;log Reflectance)</span>
+                            <strong class="mono">{{ scan.biophysical_metrics.erythema_index }} EI</strong>
+                        </div>
+                        <div class="erythema-gauge-bar">
+                            <div class="erythema-gauge-fill" style="width: {{ scan.biophysical_metrics.perfusion_pct }}%;"></div>
+                        </div>
+                        <div class="erythema-gauge-labels">
+                            <span>Microvascular Pallor (&lt;30)</span>
+                            <span>Borderline (30-36)</span>
+                            <span>Healthy Perfusion (&gt;36)</span>
+                        </div>
+                    </div>
+
+                    <!-- Chromophore LAB Grid -->
+                    <div class="chromophore-grid">
+                        <div class="chromophore-item">
+                            <span class="chromophore-label">L* Luminance</span>
+                            <strong class="chromophore-val mono">{{ scan.biophysical_metrics.l_star }}</strong>
+                            <small>Tissue pallor elevation</small>
+                        </div>
+                        <div class="chromophore-item">
+                            <span class="chromophore-label">a* Erythema Chroma</span>
+                            <strong class="chromophore-val mono text-rose">{{ scan.biophysical_metrics.a_star }}</strong>
+                            <small>Oxyhemoglobin 542/576nm</small>
+                        </div>
+                        <div class="chromophore-item">
+                            <span class="chromophore-label">b* Yellowness</span>
+                            <strong class="chromophore-val mono text-amber">{{ scan.biophysical_metrics.b_star }}</strong>
+                            <small>Carotenoid balance</small>
+                        </div>
+                    </div>
+                </div>
             </article>
         </div>
 
@@ -311,15 +441,58 @@
 {% block extra_scripts %}
 <script defer>
 document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".comparison").forEach((comparison) => {
-        const slider = comparison.querySelector(".comparison-slider");
-        const overlay = comparison.querySelector(".comparison-overlay");
-        const update = () => {
-            if (overlay) overlay.style.clipPath = `inset(0 ${100 - Number(slider.value)}% 0 0)`;
-        };
-        slider?.addEventListener("input", update);
-        update();
-    });
+    let currentMode = "blend";
+    const slider = document.getElementById("gradcamSlider");
+    const overlay = document.querySelector(".comparison-overlay");
+    const sliderVal = document.getElementById("sliderValue");
+    const sliderLabel = document.getElementById("sliderLabel");
+    const btnBlend = document.getElementById("btnModeBlend");
+    const btnSplit = document.getElementById("btnModeSplit");
+    const figcaption = document.getElementById("sliderFigcaption");
+
+    const updateView = () => {
+        if (!slider || !overlay) return;
+        const val = Number(slider.value);
+        if (sliderVal) sliderVal.textContent = val + "%";
+
+        if (currentMode === "blend") {
+            overlay.style.clipPath = "none";
+            overlay.style.opacity = (val / 100).toString();
+            if (sliderLabel) sliderLabel.textContent = "Heatmap Opacity:";
+            if (figcaption) figcaption.textContent = `Adjust neural attention heatmap opacity (${val}%)`;
+        } else {
+            overlay.style.opacity = "1";
+            overlay.style.clipPath = `inset(0 ${100 - val}% 0 0)`;
+            if (sliderLabel) sliderLabel.textContent = "Split Position:";
+            if (figcaption) figcaption.textContent = `Slide to compare Original Image vs. Grad-CAM Overlay (${val}%)`;
+        }
+    };
+
+    if (btnBlend && btnSplit) {
+        btnBlend.addEventListener("click", () => {
+            currentMode = "blend";
+            btnBlend.classList.add("active", "btn-outline-cyan");
+            btnBlend.classList.remove("btn-outline-secondary");
+            btnSplit.classList.remove("active", "btn-outline-cyan");
+            btnSplit.classList.add("btn-outline-secondary");
+            updateView();
+        });
+        btnSplit.addEventListener("click", () => {
+            currentMode = "split";
+            btnSplit.classList.add("active", "btn-outline-cyan");
+            btnSplit.classList.remove("btn-outline-secondary");
+            btnBlend.classList.remove("active", "btn-outline-cyan");
+            btnBlend.classList.add("btn-outline-secondary");
+            updateView();
+        });
+    }
+
+    slider?.addEventListener("input", updateView);
+    updateView();
+
+    // Print button handler
+    const printBtn = document.getElementById("printReportButton");
+    printBtn?.addEventListener("click", () => window.print());
 });
 </script>
 {% endblock %}
