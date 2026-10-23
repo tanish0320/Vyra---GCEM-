@@ -727,16 +727,47 @@ def save_base64_image(image_payload: str) -> Path:
     return saved_path
 
 
-def validate_patient_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+def parse_roi_bbox(raw: Any) -> tuple[int, int, int, int] | None:
+    """Parse [x1, y1, x2, y2] bounding box coordinates from list, tuple, or string."""
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        raw = raw.strip()
+        if raw.startswith("[") and raw.endswith("]"):
+            try:
+                raw = json.loads(raw)
+            except Exception:
+                raw = raw[1:-1].split(",")
+        else:
+            raw = raw.split(",")
+    if isinstance(raw, (list, tuple)) and len(raw) == 4:
+        try:
+            x1, y1, x2, y2 = [int(float(v)) for v in raw]
+            if x2 > x1 and y2 > y1:
+                return (x1, y1, x2, y2)
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+def validate_patient_payload(
+    payload: dict[str, Any],
+    require_demographics: bool = False,
+) -> tuple[dict[str, Any], list[str]]:
     """Validate incoming patient form data from HTML or API submissions."""
 
     errors: list[str] = []
 
-    patient_name = str(payload.get("patient_name", "")).strip()
+    patient_name = str(payload.get("patient_name") or payload.get("name") or "").strip()
     age_raw = payload.get("age", payload.get("patient_age"))
-    gender = normalize_gender_value(str(payload.get("gender", payload.get("sex", ""))).strip())
+    gender_raw = payload.get("gender", payload.get("sex", payload.get("biological_sex", "")))
+    gender = normalize_gender_value(str(gender_raw).strip()) if gender_raw else ""
     phone = str(payload.get("phone", "")).strip()
     notes = str(payload.get("notes", "")).strip()
+
+    # User-selected ROI Bounding Box Ingestion (Issue 4)
+    raw_bbox = payload.get("roi_bbox") or payload.get("crop_coords") or payload.get("bbox") or payload.get("roi_box")
+    roi_bbox = parse_roi_bbox(raw_bbox)
 
     has_explicit_modality = any(
         key in payload for key in ("body_part", "anatomical_modality", "image_type", "image_region")
@@ -770,11 +801,15 @@ def validate_patient_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], l
         errors.append(exc.user_message)
 
     if not patient_name:
-        errors.append("Patient name is required.")
+        if require_demographics:
+            errors.append("Patient name is required.")
+        else:
+            patient_name = "Anonymous Patient"
 
     age: int | None = None
     if age_raw in (None, ""):
-        errors.append("Age is required.")
+        if require_demographics:
+            errors.append("Age is required.")
     else:
         try:
             age = int(str(age_raw).strip())
@@ -784,7 +819,10 @@ def validate_patient_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], l
             errors.append("Age must be a valid integer.")
 
     if gender not in GENDER_OPTIONS:
-        errors.append("Gender is required.")
+        if require_demographics:
+            errors.append("Gender is required.")
+        else:
+            gender = "Other"
 
     raw_mock = payload.get("use_mock")
     use_mock = str(raw_mock).strip().lower() in {"1", "true", "yes"} if raw_mock is not None else False
@@ -801,6 +839,7 @@ def validate_patient_payload(payload: dict[str, Any]) -> tuple[dict[str, Any], l
             "screening_threshold": screening_threshold,
             "high_sensitivity_mode": high_sensitivity_mode,
             "use_mock": use_mock,
+            "roi_bbox": roi_bbox,
         },
         errors,
     )
@@ -1592,6 +1631,7 @@ def run_prediction_workflow(
             patient_payload=patient_payload,
             screening_threshold=patient_payload.get("screening_threshold"),
             high_sensitivity_mode=patient_payload.get("high_sensitivity_mode"),
+            roi_bbox=patient_payload.get("roi_bbox"),
             fallback_predictor=_predictor,
             use_mock=use_mock,
         )

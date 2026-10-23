@@ -22,10 +22,14 @@ dataset/
 .chronos/
 
 # runtime data
-database/*.db
+database/*.db*
+person3_app/database/*
 reports/*.pdf
 logs/*.log
 logs/evaluation/
 static/uploads/*
 static/gradcam/*
+person3_app/static/uploads/*
+person3_app/static/gradcam/*
 runtime/
+*.zip

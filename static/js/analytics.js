@@ -94,17 +94,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    const imageTypeLabels = payload.image_type_bar?.labels || ["Conjunctiva", "Fingernail", "Other"];
+    const imageTypeValues = payload.image_type_bar?.values || [0, 0, 0];
+
     renderAnalyticsChart("imageTypeBarChart", {
         type: "bar",
         data: {
-            labels: ["Conjunctiva", "Fingernail", "Other"],
+            labels: imageTypeLabels,
             datasets: [{
                 label: "Screenings",
-                data: [
-                    Math.max(0, Math.round((payload.metrics.total_patients || 0) * 0.58)),
-                    Math.max(0, Math.round((payload.metrics.total_patients || 0) * 0.34)),
-                    Math.max(0, Math.round((payload.metrics.total_patients || 0) * 0.08))
-                ],
+                data: imageTypeValues,
                 backgroundColor: [primary, cyan, amber],
                 borderRadius: 12
             }]

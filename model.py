@@ -17,6 +17,9 @@ from torchvision.models import (
 
 from config import BEST_CHECKPOINT_PATH, CLASS_NAMES, LATEST_CHECKPOINT_PATH, MODEL_ARCH
 
+LFS_POINTER_HEADER = "version https://git-lfs.github.com/spec/v1"
+MIN_VALID_CHECKPOINT_BYTES = 1024
+
 
 _MODEL_REGISTRY = {
     "efficientnet_b0": {
@@ -156,6 +159,93 @@ def save_checkpoint(
     )
 
 
+def is_lfs_pointer_file(checkpoint_path: str | Path | None) -> bool:
+    """Return True if the file at checkpoint_path is a Git LFS pointer text file."""
+
+    if checkpoint_path is None:
+        return False
+    path = Path(checkpoint_path)
+    if not path.exists() or not path.is_file():
+        return False
+
+    try:
+        with path.open("rb") as handle:
+            prefix = handle.read(256)
+    except OSError:
+        return False
+
+    text_prefix = prefix.decode("utf-8", errors="ignore").lstrip()
+    if text_prefix.startswith(LFS_POINTER_HEADER):
+        return True
+    if "git-lfs.github.com/spec" in text_prefix and "oid sha256:" in text_prefix:
+        return True
+    return False
+
+
+def inspect_checkpoint_file(checkpoint_path: str | Path | None = None) -> dict[str, Any]:
+    """Inspect a checkpoint path and report existence, LFS status, and validity."""
+
+    target = Path(checkpoint_path) if checkpoint_path is not None else latest_available_checkpoint(require_valid=False)
+    if target is None or not target.exists():
+        return {
+            "path": str(target) if target is not None else None,
+            "checkpoint_exists": False,
+            "checkpoint_is_lfs_pointer": False,
+            "checkpoint_valid": False,
+            "size_bytes": 0,
+            "failure_category": "missing_checkpoint",
+            "reason": "No trained checkpoint file was found on disk.",
+        }
+
+    try:
+        size_bytes = target.stat().st_size
+    except OSError as exc:
+        return {
+            "path": str(target),
+            "checkpoint_exists": True,
+            "checkpoint_is_lfs_pointer": False,
+            "checkpoint_valid": False,
+            "size_bytes": 0,
+            "failure_category": "unreadable_checkpoint",
+            "reason": f"Checkpoint file could not be stat'd: {exc}",
+        }
+
+    if is_lfs_pointer_file(target):
+        return {
+            "path": str(target),
+            "checkpoint_exists": True,
+            "checkpoint_is_lfs_pointer": True,
+            "checkpoint_valid": False,
+            "size_bytes": size_bytes,
+            "failure_category": "lfs_pointer_checkpoint",
+            "reason": (
+                f"Checkpoint file '{target.name}' ({size_bytes} bytes) is a Git LFS pointer text file, "
+                "not actual PyTorch model weights."
+            ),
+        }
+
+    if size_bytes < MIN_VALID_CHECKPOINT_BYTES:
+        return {
+            "path": str(target),
+            "checkpoint_exists": True,
+            "checkpoint_is_lfs_pointer": False,
+            "checkpoint_valid": False,
+            "size_bytes": size_bytes,
+            "failure_category": "corrupt_checkpoint",
+            "reason": f"Checkpoint file '{target.name}' ({size_bytes} bytes) is too small to be a valid PyTorch checkpoint.",
+        }
+
+    return {
+        "path": str(target),
+        "checkpoint_exists": True,
+        "checkpoint_is_lfs_pointer": False,
+        "checkpoint_valid": True,
+        "size_bytes": size_bytes,
+        "failure_category": None,
+        "reason": None,
+    }
+
+
 def load_checkpoint(
     checkpoint_path: Path = BEST_CHECKPOINT_PATH,
     device: torch.device | str = "cpu",
@@ -163,8 +253,15 @@ def load_checkpoint(
 ) -> tuple[nn.Module, dict[str, Any]]:
     """Load a saved checkpoint and restore the EfficientNet-B3 weights."""
 
+    checkpoint_path = Path(checkpoint_path)
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+
+    inspection = inspect_checkpoint_file(checkpoint_path)
+    if inspection["checkpoint_is_lfs_pointer"]:
+        raise RuntimeError(inspection["reason"])
+    if not inspection["checkpoint_valid"]:
+        raise RuntimeError(inspection["reason"] or f"Invalid checkpoint file: {checkpoint_path}")
 
     try:
         checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
@@ -203,10 +300,12 @@ def load_checkpoint(
     return model, checkpoint
 
 
-def latest_available_checkpoint() -> Path | None:
+def latest_available_checkpoint(require_valid: bool = False) -> Path | None:
     """Return the most useful checkpoint that currently exists on disk."""
 
     for checkpoint_path in (BEST_CHECKPOINT_PATH, LATEST_CHECKPOINT_PATH):
         if checkpoint_path.exists():
+            if require_valid and not inspect_checkpoint_file(checkpoint_path)["checkpoint_valid"]:
+                continue
             return checkpoint_path
     return None

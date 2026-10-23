@@ -40,7 +40,7 @@
             </svg>
             <div class="scan-orbit-card orbit-one">
                 <i data-lucide="activity"></i>
-                <strong>{{ "%.1f"|format(performance.accuracy_badge) }}%</strong>
+                <strong>{% if performance.accuracy_badge is not none %}{{ "%.1f"|format(performance.accuracy_badge) }}%{% else %}Unavailable{% endif %}</strong>
                 <span>{{ performance.source }}</span>
             </div>
             <div class="scan-orbit-card orbit-two">
@@ -52,7 +52,7 @@
 
         <div class="hero-stat-row reveal">
             <article class="hero-stat" style="--delay:0s">
-                <strong>{{ "%.0f"|format(performance.accuracy_badge) }}%+</strong>
+                <strong>{% if performance.accuracy_badge is not none %}{{ "%.1f"|format(performance.accuracy_badge) }}%{% else %}Unavailable{% endif %}</strong>
                 <span>Accuracy</span>
             </article>
             <article class="hero-stat" style="--delay:.5s">
@@ -155,10 +155,10 @@
 
 <section class="section stats-band">
     <div class="page-wrap stats-grid">
-        <article class="stat-card reveal"><strong data-count-to="{{ home_stats.total_scans if home_stats.total_scans > 0 else 10000 }}" data-count-suffix="+">0</strong><span>Scans Analyzed</span></article>
+        <article class="stat-card reveal"><strong data-count-to="{{ home_stats.total_scans }}">{{ home_stats.total_scans }}</strong><span>Scans Analyzed</span></article>
         <article class="stat-card reveal"><strong>&lt; 3s</strong><span>Detection Time</span></article>
-        <article class="stat-card reveal"><strong data-count-to="{{ performance.accuracy_badge|round|int }}" data-count-suffix="%+">0</strong><span>Accuracy</span></article>
-        <article class="stat-card reveal"><strong data-count-to="500" data-count-suffix="+">0</strong><span>Hospitals Ready</span></article>
+        <article class="stat-card reveal">{% if performance.accuracy_badge is not none %}<strong data-count-to="{{ performance.accuracy_badge|round|int }}" data-count-suffix="%">{{ "%.1f"|format(performance.accuracy_badge) }}%</strong>{% else %}<strong>Unavailable</strong>{% endif %}<span>Accuracy</span></article>
+        <article class="stat-card reveal"><strong>2</strong><span>Supported Modalities</span></article>
     </div>
 </section>
 {% endblock %}

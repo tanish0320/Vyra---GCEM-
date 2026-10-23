@@ -18,7 +18,7 @@ import math
 import os
 import shutil
 import sys
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable
@@ -698,6 +698,7 @@ def _validate_feature_vector(
 def run_normalization_stage(
     raw_image_path: Path,
     body_part: str,
+    roi_bbox: tuple[int, int, int, int] | None = None,
 ) -> NormalizationStageOutput:
     """Execute Person 1's normalization pipeline if available, or use the documented boundary."""
 
@@ -726,9 +727,18 @@ def run_normalization_stage(
     warnings: list[str] = []
 
     try:
-        raw_out = normalizer_fn(image=str(raw_image_path), body_part=body_part)
+        if roi_bbox is not None:
+            raw_out = normalizer_fn(image=str(raw_image_path), body_part=body_part, roi_bbox=roi_bbox)
+        else:
+            raw_out = normalizer_fn(image=str(raw_image_path), body_part=body_part)
     except TypeError:
-        raw_out = normalizer_fn(str(raw_image_path), body_part)
+        try:
+            if roi_bbox is not None:
+                raw_out = normalizer_fn(str(raw_image_path), body_part, roi_bbox=roi_bbox)
+            else:
+                raw_out = normalizer_fn(str(raw_image_path), body_part)
+        except TypeError:
+            raw_out = normalizer_fn(str(raw_image_path), body_part)
     except Exception as exc:
         logger.error("Person 1 normalization failed for %s: %s", raw_image_path.name, exc)
         warnings.append("Optical normalization was unavailable for this image; using uncropped original.")
@@ -750,10 +760,37 @@ def run_normalization_stage(
         norm_dict = raw_out
     elif hasattr(raw_out, "to_dict") and callable(raw_out.to_dict):
         norm_dict = raw_out.to_dict()
+    elif is_dataclass(raw_out):
+        norm_dict = asdict(raw_out)
+    else:
+        norm_dict = {
+            "normalized_image": getattr(raw_out, "normalized_image_rgb", getattr(raw_out, "normalized_image", None)),
+            "feature_vector": getattr(raw_out, "feature_vector", None),
+            "ita_angle": getattr(raw_out, "ita_angle", None),
+            "ita_category": getattr(raw_out, "ita_category", None),
+            "glare_fraction": getattr(raw_out, "glare_fraction", None),
+            "is_valid": getattr(raw_out, "is_valid", True),
+            "quality_warnings": getattr(raw_out, "quality_warnings", []),
+        }
+
+    if "normalized_image" not in norm_dict and "normalized_image_rgb" in norm_dict:
+        norm_dict["normalized_image"] = norm_dict["normalized_image_rgb"]
 
     if norm_dict.get("is_valid") is False or norm_dict.get("error"):
-        err_msg = str(norm_dict.get("error") or "Image failed optical normalization quality checks.")
-        raise ImageUploadValidationError(err_msg)
+        warn_msg = str(norm_dict.get("error") or "Image failed optical normalization quality checks; using standard preprocessing.")
+        warnings.append(warn_msg)
+        model_input_path = create_separate_model_input_image(raw_image_path, target_size=None)
+        return NormalizationStageOutput(
+            raw_image_path=raw_image_path,
+            normalized_image_path=None,
+            model_input_path=model_input_path,
+            feature_vector=None,
+            ita_angle=None,
+            ita_category=None,
+            glare_fraction=None,
+            normalization_available=False,
+            warnings=warnings,
+        )
 
     norm_img = norm_dict.get("normalized_image")
     if isinstance(norm_img, Image.Image):
@@ -1299,6 +1336,7 @@ def run_vyra_predict(
     screening_threshold: float | str | None = None,
     high_sensitivity_mode: bool | str | None = None,
     feature_vector: list[float] | np.ndarray | None = None,
+    roi_bbox: tuple[int, int, int, int] | None = None,
     predictor_fn: Callable[..., dict[str, Any]] | None = None,
     fallback_predictor: AnemiaPredictor | None = None,
     use_mock: bool = False,
@@ -1319,27 +1357,51 @@ def run_vyra_predict(
     # 2. Validate & canonicalize body_part ("conjunctiva" or "fingernail")
     canonical_body_part = resolve_body_part(body_part)
 
-    # 2b. Anatomical ROI Detection & Automated Cropping
-    try:
-        from roi_detector import detect_and_crop_roi
-    except ImportError:
-        from src.preprocessing.roi_detector import detect_and_crop_roi
+    # Check for roi_bbox passed directly or in patient_payload (Issue 4)
+    if roi_bbox is None and isinstance(patient_payload, dict):
+        roi_bbox = patient_payload.get("roi_bbox")
 
-    roi_result = detect_and_crop_roi(resolved_raw_path, canonical_body_part)
-    if not roi_result.success:
-        retake_msg = roi_result.retake_guidance or roi_result.message
-        raise ImageUploadValidationError(
-            f"{roi_result.message} {retake_msg}",
-            failure_category="anatomical_roi_not_detected",
-            internal_detail=roi_result.to_dict(),
-        )
+    # 2b. Anatomical ROI Detection & Cropping (user-selected ROI or automated detection)
+    effective_analysis_path = resolved_raw_path
+    applied_user_roi = False
+    if roi_bbox is not None and isinstance(roi_bbox, (tuple, list)) and len(roi_bbox) == 4:
+        try:
+            with Image.open(resolved_raw_path) as src_im:
+                w, h = src_im.size
+                x1, y1, x2, y2 = roi_bbox
+                x1 = max(0, min(int(x1), w - 1))
+                y1 = max(0, min(int(y1), h - 1))
+                x2 = max(x1 + 1, min(int(x2), w))
+                y2 = max(y1 + 1, min(int(y2), h))
+                cropped = src_im.crop((x1, y1, x2, y2))
+                effective_analysis_path = resolved_raw_path.parent / f"{resolved_raw_path.stem}_roi.png"
+                cropped.save(effective_analysis_path)
+                applied_user_roi = True
+        except Exception as exc:
+            logger.warning("Failed applying user-selected ROI: %s. Falling back to auto-detector.", exc)
+            applied_user_roi = False
 
-    # If auto-cropped from a wider frame, save the isolated tissue to a cropped path for analysis
-    if roi_result.detection_type == "auto_cropped" and roi_result.cropped_image_rgb is not None:
-        effective_analysis_path = resolved_raw_path.parent / f"{resolved_raw_path.stem}_roi.png"
-        Image.fromarray(roi_result.cropped_image_rgb).save(effective_analysis_path)
-    else:
-        effective_analysis_path = resolved_raw_path
+    if not applied_user_roi:
+        try:
+            from roi_detector import detect_and_crop_roi
+        except ImportError:
+            from src.preprocessing.roi_detector import detect_and_crop_roi
+
+        roi_result = detect_and_crop_roi(resolved_raw_path, canonical_body_part)
+        if not roi_result.success:
+            retake_msg = roi_result.retake_guidance or roi_result.message
+            raise ImageUploadValidationError(
+                f"{roi_result.message} {retake_msg}",
+                failure_category="anatomical_roi_not_detected",
+                internal_detail=roi_result.to_dict(),
+            )
+
+        # If auto-cropped from a wider frame, save the isolated tissue to a cropped path for analysis
+        if roi_result.detection_type == "auto_cropped" and roi_result.cropped_image_rgb is not None:
+            effective_analysis_path = resolved_raw_path.parent / f"{resolved_raw_path.stem}_roi.png"
+            Image.fromarray(roi_result.cropped_image_rgb).save(effective_analysis_path)
+        else:
+            effective_analysis_path = resolved_raw_path
 
     # 3. Resolve screening threshold (0.50 balanced default, 0.255 high-sensitivity)
     resolved_threshold, is_high_sens = resolve_screening_threshold(
@@ -1351,7 +1413,7 @@ def run_vyra_predict(
     metadata = build_inference_metadata(patient_payload)
 
     # 5. Run Person 1 normalization stage (on verified/cropped anatomical tissue)
-    normalized_stage = run_normalization_stage(effective_analysis_path, canonical_body_part)
+    normalized_stage = run_normalization_stage(effective_analysis_path, canonical_body_part, roi_bbox=roi_bbox)
     validated_feature_vector = (
         _validate_feature_vector(feature_vector)
         if feature_vector is not None
@@ -1460,6 +1522,7 @@ def run_vyra_predict(
                             input_tensor=inp_tensor,
                             predicted_class_index=pred_class_idx,
                             output_dir=gradcam_dir,
+                            target_size=(224, 224),
                         )
                         gradcam_path = f"gradcam/{artifacts.output_path.name}"
             except Exception as exc:

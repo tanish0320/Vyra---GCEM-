@@ -339,6 +339,7 @@ def generate_and_save_gradcam(
     input_tensor: Tensor,
     predicted_class_index: int,
     output_dir: Path = GRADCAM_DIR,
+    target_size: tuple[int, int] | None = None,
 ) -> GradCAMArtifacts:
     """Generate and save a labeled side-by-side Grad-CAM comparison image."""
 
@@ -354,8 +355,11 @@ def generate_and_save_gradcam(
     finally:
         gradcam.close()
 
+    tensor_h, tensor_w = int(input_tensor.shape[-2]), int(input_tensor.shape[-1])
+    overlay_size = target_size or (tensor_w, tensor_h)
+
     with Image.open(image_path) as image:
-        original_rgb = image.convert("RGB").resize(TRAINING_CONFIG.image_size)
+        original_rgb = image.convert("RGB").resize(overlay_size, Image.Resampling.BILINEAR)
 
     original_array = np.array(original_rgb)
     overlay_array = overlay_heatmap(original_array, heatmap)

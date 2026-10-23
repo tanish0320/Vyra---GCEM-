@@ -6,35 +6,41 @@
 {% endblock %}
 
 {% block content %}
+{% set has_active_filters = (filters.q or filters.result or filters.risk or filters.start_date or filters.end_date) %}
 <section class="page-hero">
     <div class="page-wrap">
-        <span class="section-kicker">Search and review</span>
+        <span class="section-kicker">CHW clinical log &amp; review</span>
         <h1><span class="gradient-text">Patient History</span></h1>
-        <p>Filter, compare, export, and archive screening records without losing audit history.</p>
+        <p>Search, filter, open, export, and archive genuine patient screening records. Simulated demo/mock scans are automatically excluded.</p>
     </div>
 </section>
 
 <section class="section-tight">
     <div class="page-wrap">
         <div class="history-toolbar reveal">
-            <form method="get" class="filter-grid" data-live-filter-form>
-                <input class="form-control" type="search" name="q" placeholder="Search patient, phone, notes, or ID" value="{{ filters.q }}">
-                <select class="form-select" name="result">
+            <form method="get" class="filter-grid" data-live-filter-form role="search" aria-label="Filter patient history">
+                <input class="form-control" type="search" name="q" aria-label="Search patient name, phone, notes, or scan ID" placeholder="Search patient, phone, notes, or ID" value="{{ filters.q }}">
+                <select class="form-select" name="result" aria-label="Filter by screening result">
                     <option value="">All results</option>
                     <option value="Anemic" {% if filters.result == 'Anemic' %}selected{% endif %}>Anemic</option>
                     <option value="Non-Anemic" {% if filters.result == 'Non-Anemic' %}selected{% endif %}>Non-Anemic</option>
                 </select>
-                <select class="form-select" name="risk">
+                <select class="form-select" name="risk" aria-label="Filter by risk level">
                     <option value="">All risk levels</option>
                     {% for risk in ['Low Risk', 'Low-Medium Risk', 'Uncertain', 'Possible Anemia', 'Medium Risk', 'High Risk'] %}
                         <option value="{{ risk }}" {% if filters.risk == risk %}selected{% endif %}>{{ risk }}</option>
                     {% endfor %}
                 </select>
-                <input class="form-control" type="date" name="start_date" value="{{ filters.start_date }}">
-                <input class="form-control" type="date" name="end_date" value="{{ filters.end_date }}">
+                <input class="form-control" type="date" name="start_date" aria-label="Start date" value="{{ filters.start_date }}">
+                <input class="form-control" type="date" name="end_date" aria-label="End date" value="{{ filters.end_date }}">
                 <button class="btn btn-primary" type="submit"><i data-lucide="filter"></i> Apply</button>
             </form>
             <div class="filter-actions">
+                {% if has_active_filters %}
+                    <a href="{{ url_for('history_page') }}" class="btn btn-outline-secondary" aria-label="Clear all history filters">
+                        <i data-lucide="x"></i> Clear
+                    </a>
+                {% endif %}
                 <div class="view-toggle" role="group" aria-label="History view">
                     <button class="btn icon-btn active" type="button" data-history-view="grid" aria-label="Grid view"><i data-lucide="layout-grid"></i></button>
                     <button class="btn icon-btn" type="button" data-history-view="list" aria-label="List view"><i data-lucide="list"></i></button>
@@ -51,10 +57,10 @@
                     {% for scan in scans %}
                         <article class="history-card reveal">
                             <div class="history-card-head">
-                                <span class="avatar">{{ scan.patient_name[:1]|upper }}</span>
+                                <span class="avatar" aria-hidden="true">{{ scan.patient_name[:1]|upper }}</span>
                                 <div>
-                                    <h3>{{ scan.patient_name }}</h3>
-                                    <p>{{ scan.created_at.strftime("%d %b %Y, %H:%M") }} · {{ scan.public_scan_id }}</p>
+                                    <h3><a href="{{ url_for('result_page', scan_id=scan.id) }}" class="history-patient-link">{{ scan.patient_name }}</a></h3>
+                                    <p>{{ scan.created_at.strftime("%d %b %Y, %H:%M") }} · <span class="mono">{{ scan.public_scan_id }}</span></p>
                                 </div>
                                 <span class="badge {% if scan.is_anemic %}result-badge-danger{% else %}result-badge-success{% endif %}">{{ scan.prediction }}</span>
                             </div>
@@ -62,15 +68,16 @@
                                 <div class="confidence-fill" data-progress="{{ scan.confidence_percent }}"></div>
                             </div>
                             <div class="history-meta">
-                                <span>Age {{ scan.age or "N/A" }}</span>
+                                <span>Age {{ scan.age if scan.age is not none else "N/A" }}</span>
                                 <span>{{ scan.gender or "N/A" }}</span>
+                                <span>{{ (scan.anatomical_modality or scan.image_type or "conjunctiva")|capitalize }}</span>
                                 <span class="mono">{{ "%.1f"|format(scan.confidence_percent) }}%</span>
                             </div>
                             <div class="table-actions">
-                                <a href="{{ url_for('result_page', scan_id=scan.id) }}" class="btn icon-btn" aria-label="View result"><i data-lucide="eye"></i></a>
-                                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn icon-btn" aria-label="Download PDF"><i data-lucide="file-down"></i></a>
+                                <a href="{{ url_for('result_page', scan_id=scan.id) }}" class="btn btn-sm btn-outline-secondary" aria-label="Open result for {{ scan.patient_name }}"><i data-lucide="eye"></i> Open</a>
+                                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn icon-btn" aria-label="Download PDF for {{ scan.patient_name }}"><i data-lucide="file-down"></i></a>
                                 <form method="post" action="{{ url_for('delete_scan', scan_id=scan.id) }}" onsubmit="return confirm('Remove this scan from active history? The record stays in the database for audit recovery.');">
-                                    <button class="btn icon-btn btn-outline-danger" type="submit" aria-label="Archive"><i data-lucide="archive"></i></button>
+                                    <button class="btn icon-btn btn-outline-danger" type="submit" aria-label="Archive scan for {{ scan.patient_name }}"><i data-lucide="archive"></i></button>
                                 </form>
                             </div>
                         </article>
@@ -82,23 +89,24 @@
                         <table class="app-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Date</th><th>Result</th><th>Confidence</th><th>Actions</th>
+                                    <th>ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Modality</th><th>Date</th><th>Result</th><th>Confidence</th><th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for scan in scans %}
                                     <tr>
-                                        <td>{{ scan.public_scan_id }}</td>
-                                        <td>{{ scan.patient_name }}</td>
-                                        <td>{{ scan.age or "N/A" }}</td>
+                                        <td class="mono">{{ scan.public_scan_id }}</td>
+                                        <td><a href="{{ url_for('result_page', scan_id=scan.id) }}">{{ scan.patient_name }}</a></td>
+                                        <td>{{ scan.age if scan.age is not none else "N/A" }}</td>
                                         <td>{{ scan.gender or "N/A" }}</td>
+                                        <td>{{ (scan.anatomical_modality or scan.image_type or "conjunctiva")|capitalize }}</td>
                                         <td>{{ scan.created_at.strftime("%d %b %Y") }}</td>
                                         <td><span class="badge {% if scan.is_anemic %}result-badge-danger{% else %}result-badge-success{% endif %}">{{ scan.prediction }}</span></td>
-                                        <td>{{ "%.1f"|format(scan.confidence_percent) }}%</td>
+                                        <td class="mono">{{ "%.1f"|format(scan.confidence_percent) }}%</td>
                                         <td>
                                             <div class="table-actions">
-                                                <a href="{{ url_for('result_page', scan_id=scan.id) }}" class="btn icon-btn"><i data-lucide="eye"></i></a>
-                                                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn icon-btn"><i data-lucide="file-down"></i></a>
+                                                <a href="{{ url_for('result_page', scan_id=scan.id) }}" class="btn icon-btn" aria-label="Open result for {{ scan.patient_name }}"><i data-lucide="eye"></i></a>
+                                                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn icon-btn" aria-label="Download PDF for {{ scan.patient_name }}"><i data-lucide="file-down"></i></a>
                                             </div>
                                         </td>
                                     </tr>
@@ -108,11 +116,20 @@
                     </div>
                 </div>
             {% else %}
-                <div class="empty-history reveal">
+                <div class="empty-history reveal" role="status">
                     <i data-lucide="folder-search"></i>
-                    <h2>No records match these filters</h2>
-                    <p>Start a new scan or clear filters to review previous screenings.</p>
-                    <a href="{{ url_for('scan_page') }}" class="btn btn-primary">Start First Scan</a>
+                    {% if has_active_filters %}
+                        <h2>No records match these filters</h2>
+                        <p>Clear your active search filters or start a new patient screening.</p>
+                        <div class="action-row" style="justify-content:center;gap:0.75rem">
+                            <a href="{{ url_for('history_page') }}" class="btn btn-outline-secondary">Clear Filters</a>
+                            <a href="{{ url_for('scan_page') }}" class="btn btn-primary">New Scan</a>
+                        </div>
+                    {% else %}
+                        <h2>No genuine screening records saved yet</h2>
+                        <p>Verified patient screenings will appear here automatically. Simulated demo/mock scans are never written to clinical history.</p>
+                        <a href="{{ url_for('scan_page') }}" class="btn btn-primary">Start First Scan</a>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>

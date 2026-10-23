@@ -83,12 +83,19 @@ function bindLiveStatus() {
             const payload = await response.json();
             if (payload.lightweight_ui) {
                 setState("online", "UI Online");
-            } else if (payload.predictor_loaded) {
-                setState("online", "System Online");
-            } else if (payload.checkpoint_available) {
-                setState("warning", "Model Waking");
+            } else if (payload.predictor_loaded || payload.model_ready) {
+                setState("online", "Model Ready");
+            } else if (
+                payload.checkpoint_valid &&
+                payload.checkpoint_available &&
+                !payload.checkpoint_is_lfs_pointer &&
+                !payload.failure_category
+            ) {
+                setState("warning", "Model Loading");
+            } else if (payload.checkpoint_is_lfs_pointer) {
+                setState("offline", "LFS Pointer");
             } else {
-                setState("offline", "Weights Missing");
+                setState("offline", "Model Unavailable");
             }
         } catch (error) {
             setState("offline", "Offline");

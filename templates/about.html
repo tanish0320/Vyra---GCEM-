@@ -23,7 +23,7 @@
         AnemiaVision AI uses a pretrained EfficientNet-B3 convolutional network to analyze
         smartphone images of the eye conjunctiva and fingernail bed. The model looks for
         color and texture patterns linked to reduced hemoglobin appearance, then produces
-        a binary screening result with confidence and Grad-CAM explainability.
+        a screening result with confidence and Grad-CAM explainability.
     </p>
 
     <div class="about-grid">
@@ -87,23 +87,23 @@
             <tbody>
                 <tr>
                     <td>Clinical Accuracy</td>
-                    <td>{{ "%.1f"|format(performance.accuracy_badge) }}%</td>
+                    <td>{% if performance.accuracy_badge is not none %}{{ "%.1f"|format(performance.accuracy_badge) }}%{% else %}Unavailable{% endif %}</td>
                     <td>{{ performance.source }}</td>
                 </tr>
                 <tr>
                     <td>Sensitivity</td>
-                    <td>{{ "%.1f"|format(performance.sensitivity * 100) }}%</td>
-                    <td>Anemic recall target</td>
+                    <td>{% if performance.sensitivity is not none %}{{ "%.1f"|format(performance.sensitivity * 100) }}%{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source if performance.sensitivity is not none else "No evaluation artifact" }}</td>
                 </tr>
                 <tr>
                     <td>Specificity</td>
-                    <td>{{ "%.1f"|format(performance.specificity * 100) }}%</td>
-                    <td>Non-anemic true negative target</td>
+                    <td>{% if performance.specificity is not none %}{{ "%.1f"|format(performance.specificity * 100) }}%{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source if performance.specificity is not none else "No evaluation artifact" }}</td>
                 </tr>
                 <tr>
                     <td>AUC-ROC</td>
-                    <td>{{ "%.2f"|format(performance.auc_roc) }}</td>
-                    <td>Binary discrimination target</td>
+                    <td>{% if performance.auc_roc is not none %}{{ "%.2f"|format(performance.auc_roc) }}{% else %}Unavailable{% endif %}</td>
+                    <td>{{ performance.source if performance.auc_roc is not none else "No evaluation artifact" }}</td>
                 </tr>
             </tbody>
         </table>
@@ -118,9 +118,9 @@
         </div>
     </div>
     <ul class="advice-list">
-        <li>This application is designed for screening support, not definitive diagnosis.</li>
+        <li>{{ disclaimer_text }}</li>
         <li>Lighting, blur, motion, skin tone variation, and camera quality can affect predictions.</li>
-        <li>Visual estimates of hemoglobin are approximate and should be confirmed with laboratory testing.</li>
+        <li>Continuous hemoglobin readouts are displayed only when backed by a validated regression head.</li>
         <li>Patients with symptoms or high-risk results should be referred for professional medical review.</li>
     </ul>
 </section>

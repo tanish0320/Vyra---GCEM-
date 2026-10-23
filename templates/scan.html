@@ -8,43 +8,115 @@
 {% block content %}
 <section class="page-hero">
     <div class="page-wrap">
-        <span class="section-kicker">AI acquisition workflow</span>
+        <span class="section-kicker">CHW screening &amp; acquisition workflow</span>
         <h1><span class="gradient-text">New Patient Scan</span></h1>
-        <p>Capture or upload a conjunctiva or fingernail image, add patient context, then run the screening model.</p>
+        <p>Select the anatomical modality, capture or upload a clear image, enter patient intake details, and run non-invasive anemia screening.</p>
     </div>
 </section>
 
 <section class="section-tight">
     <div class="page-wrap">
-        <div class="model-readiness-card {% if predictor_loaded and not vercel_lightweight|default(false) %}model-readiness-card--ready{% elif checkpoint_available and not vercel_lightweight|default(false) %}model-readiness-card--loading{% else %}model-readiness-card--offline{% endif %}" role="status" aria-live="polite">
-            <i data-lucide="{% if vercel_lightweight|default(false) %}monitor-check{% elif predictor_loaded %}cpu{% elif checkpoint_available %}loader-2{% else %}cloud-off{% endif %}"></i>
-            <div>
+        <div
+            id="modelReadinessCard"
+            class="model-readiness-card {% if vercel_lightweight|default(false) %}model-readiness-card--offline{% elif model_ready or predictor_loaded %}model-readiness-card--ready{% elif model_loading %}model-readiness-card--loading{% else %}model-readiness-card--offline{% endif %}"
+            data-model-state="{% if vercel_lightweight|default(false) %}unavailable{% elif model_ready or predictor_loaded %}ready{% elif model_loading %}loading{% else %}unavailable{% endif %}"
+            role="status"
+            aria-live="polite"
+        >
+            <i data-lucide="{% if vercel_lightweight|default(false) %}monitor-check{% elif model_ready or predictor_loaded %}cpu{% elif model_loading %}loader-2{% else %}cloud-off{% endif %}"></i>
+            <div class="model-readiness-body">
                 {% if vercel_lightweight|default(false) %}
-                    <strong id="modelStatusBadge">Prediction Unavailable Here</strong>
+                    <div class="model-readiness-header">
+                        <strong id="modelStatusBadge">Prediction Unavailable Here</strong>
+                        <span class="state-chip state-chip--unavailable">UI-Only Host</span>
+                    </div>
                     <p id="modelStatusHint">This Vercel deployment is UI-only. Open the full Docker/Render deployment to run PyTorch screening and save patient history.</p>
                     {% if full_app_url|default("") %}
                         <a class="btn btn-primary btn-sm" href="{{ full_app_url }}/scan"><i data-lucide="external-link"></i> Open Full AI App</a>
                     {% endif %}
-                {% elif predictor_loaded %}
-                    <strong id="modelStatusBadge">Model Ready</strong>
+                {% elif model_ready or predictor_loaded %}
+                    <div class="model-readiness-header">
+                        <strong id="modelStatusBadge">Model Ready</strong>
+                        <span class="state-chip state-chip--ready" id="modelStateChip">Ready for Inference</span>
+                    </div>
                     <p id="modelStatusHint">The screening model is loaded and ready for inference.</p>
-                {% elif checkpoint_available %}
-                    <strong id="modelStatusBadge">Model Loading</strong>
-                    <p id="modelStatusHint">Weights are available; the server is loading the model into memory.</p>
+                {% elif model_loading %}
+                    <div class="model-readiness-header">
+                        <strong id="modelStatusBadge">Model Loading</strong>
+                        <span class="state-chip state-chip--loading" id="modelStateChip">Warming Up</span>
+                    </div>
+                    <p id="modelStatusHint">Validated model weights are present; the server is warming up the model into memory.</p>
                 {% else %}
-                    <strong id="modelStatusBadge">Model Unavailable</strong>
-                    <p id="modelStatusHint">No trained checkpoint was found for this deployment.</p>
+                    <div class="model-readiness-header">
+                        <strong id="modelStatusBadge">Model Unavailable</strong>
+                        <span class="state-chip state-chip--unavailable" id="modelStateChip">
+                            {% if checkpoint_is_lfs_pointer %}Git LFS Pointer Detected{% else %}Weights Missing{% endif %}
+                        </span>
+                    </div>
+                    <p id="modelStatusHint">{{ model_status_message or predictor_load_error or "No valid trained checkpoint was found for this deployment." }}</p>
+                    <p class="model-readiness-subnote">
+                        Intake validation and image quality checks remain active, but live AI screening will return an honest unavailable notice until valid model weights are installed.
+                    </p>
                 {% endif %}
             </div>
         </div>
 
-        <form id="scanForm" method="post" action="{{ url_for('predict_route') }}" enctype="multipart/form-data" class="scan-layout scan-workspace-card">
+        <div id="scanValidationBanner" class="scan-validation-banner d-none" role="alert" aria-live="assertive">
+            <i data-lucide="alert-octagon"></i>
+            <div>
+                <strong id="scanValidationTitle">Image Rejected</strong>
+                <p id="scanValidationDetail">Please choose a valid JPG, PNG, or WEBP image at least 100×100 pixels.</p>
+            </div>
+        </div>
+
+        <form id="scanForm" method="post" action="{{ url_for('predict_route') }}" enctype="multipart/form-data" class="scan-layout scan-workspace-card" novalidate>
             <div class="scan-capture-panel">
-                <div class="scan-tabs" id="scanTabs" role="tablist">
-                    <button class="scan-tab active" id="upload-tab" data-target="#upload-pane" type="button" role="tab">
+                <div class="modality-selector-block" role="group" aria-labelledby="modalitySelectorHeading">
+                    <div class="modality-selector-header">
+                        <span class="section-kicker" id="modalitySelectorHeading">Step 1 · Select Anatomical Modality</span>
+                        <span class="pill">Required</span>
+                    </div>
+                    <div class="modality-cards" id="modalityCards">
+                        <button
+                            type="button"
+                            class="modality-card active"
+                            data-modality="conjunctiva"
+                            data-image-type="Eye Conjunctiva"
+                            aria-pressed="true"
+                        >
+                            <div class="modality-card-top">
+                                <i data-lucide="eye"></i>
+                                <strong>Eye Conjunctiva</strong>
+                            </div>
+                            <span>Lower palpebral conjunctiva (inner lower eyelid)</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="modality-card"
+                            data-modality="fingernail"
+                            data-image-type="Fingernail"
+                            aria-pressed="false"
+                        >
+                            <div class="modality-card-top">
+                                <i data-lucide="hand"></i>
+                                <strong>Fingernail Bed</strong>
+                            </div>
+                            <span>Unpolished fingernail plate under natural diffused light</span>
+                        </button>
+                    </div>
+                    <div class="modality-guidance-box" id="modalityGuidanceBox" aria-live="polite">
+                        <i data-lucide="info"></i>
+                        <div id="modalityGuidanceText">
+                            <strong>Conjunctiva capture guidance:</strong> Gently pull down the lower eyelid to expose the palpebral conjunctiva. Use bright, even lighting, avoid flash glare, and keep the camera steady (minimum 100×100 px).
+                        </div>
+                    </div>
+                </div>
+
+                <div class="scan-tabs" id="scanTabs" role="tablist" aria-label="Image acquisition method">
+                    <button class="scan-tab active" id="upload-tab" data-target="#upload-pane" type="button" role="tab" aria-selected="true" aria-controls="upload-pane">
                         <i data-lucide="folder-up"></i> Upload Image
                     </button>
-                    <button class="scan-tab" id="camera-tab" data-target="#camera-pane" type="button" role="tab">
+                    <button class="scan-tab" id="camera-tab" data-target="#camera-pane" type="button" role="tab" aria-selected="false" aria-controls="camera-pane">
                         <i data-lucide="camera"></i> Camera Capture
                     </button>
                 </div>
@@ -58,17 +130,17 @@
                 </div>
 
                 <div class="tab-content">
-                    <div class="tab-pane show active" id="upload-pane" role="tabpanel">
+                    <div class="tab-pane show active" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab">
                         <label for="imageInput" class="dropzone" id="dropzone">
-                            <input type="file" id="imageInput" name="image" accept="image/*" capture="environment" class="visually-hidden">
+                            <input type="file" id="imageInput" name="image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" capture="environment" class="visually-hidden">
                             <span class="dropzone-icon"><i data-lucide="cloud-upload"></i></span>
-                            <strong>Drag & drop a scan image</strong>
-                            <span>or click to upload from camera/gallery</span>
-                            <small id="fileMeta">JPG, PNG, WEBP supported</small>
+                            <strong>Drag &amp; drop a scan image</strong>
+                            <span>or tap to select from camera / gallery</span>
+                            <small id="fileMeta">Supported: JPG, JPEG, PNG, WEBP · Min 100×100 px · Max 10 MB</small>
                         </label>
                     </div>
 
-                    <div class="tab-pane" id="camera-pane" role="tabpanel">
+                    <div class="tab-pane" id="camera-pane" role="tabpanel" aria-labelledby="camera-tab">
                         <div class="camera-shell">
                             <video id="cameraFeed" class="camera-feed" playsinline autoplay muted></video>
                             <canvas id="cameraCanvas" class="d-none"></canvas>
@@ -84,66 +156,91 @@
                 </div>
 
                 <div class="preview-panel">
-                    <img id="imagePreview" class="preview-image d-none" alt="Selected preview" loading="lazy">
+                    <img id="imagePreview" class="preview-image d-none" alt="Selected patient scan preview" loading="lazy">
                     <div id="previewPlaceholder" class="preview-placeholder">
                         <i data-lucide="image"></i>
                         Preview appears here after upload or capture.
                     </div>
                 </div>
 
-                <div class="quality-panel" aria-live="polite">
-                    <span id="qualityStatus" class="quality-pill">Awaiting image</span>
-                    <small id="qualityScore">Quality score will appear here.</small>
+                <div class="quality-panel" id="qualityPanel" aria-live="polite">
+                    <div class="quality-panel-top">
+                        <span id="qualityStatus" class="quality-pill" data-quality-state="awaiting">Awaiting image</span>
+                        <span id="qualityDimensions" class="quality-dimensions"></span>
+                    </div>
+                    <small id="qualityScore">Upload or capture an image to run client-side resolution, lighting, and focus checks.</small>
                 </div>
 
                 <input type="hidden" id="capturedImageData" name="captured_image_data">
+                <input type="hidden" id="bodyPartInput" name="body_part" value="conjunctiva">
             </div>
 
             <div class="scan-form-panel">
                 <div class="section-header compact">
                     <div>
-                        <span class="section-kicker">Patient info</span>
+                        <span class="section-kicker">Step 2 · Patient intake</span>
                         <h2>Visit details</h2>
                     </div>
                     <span class="pill">* Required</span>
                 </div>
                 <div class="form-grid">
                     <div class="field floating full">
-                        <label class="form-label" for="patientName">Name*</label>
-                        <input class="form-control" id="patientName" name="patient_name" required autocomplete="name">
+                        <label class="form-label" for="patientName">Patient Name*</label>
+                        <input class="form-control" id="patientName" name="patient_name" required autocomplete="name" placeholder="Full name or clinic identifier">
                     </div>
                     <div class="field floating">
-                        <label class="form-label" for="patientAge">Age*</label>
-                        <input class="form-control" id="patientAge" name="age" type="number" min="0" max="120" required inputmode="numeric">
+                        <label class="form-label" for="patientAge">Age (Years)*</label>
+                        <input class="form-control" id="patientAge" name="age" type="number" min="0" max="120" required inputmode="numeric" placeholder="0 - 120">
                     </div>
                     <div class="field floating">
-                        <label class="form-label" for="gender">Gender*</label>
+                        <label class="form-label" for="gender">Biological Sex / Gender*</label>
                         <select class="form-select" id="gender" name="gender" required>
-                            <option value=""></option>
+                            <option value="">Select gender</option>
                             {% for option in gender_options %}
                                 <option value="{{ option }}">{{ option }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="field floating full">
-                        <label class="form-label" for="phone">Phone</label>
-                        <input class="form-control" id="phone" name="phone" type="tel" autocomplete="tel">
+                        <label class="form-label" for="phone">Phone Number (Optional)</label>
+                        <input class="form-control" id="phone" name="phone" type="tel" autocomplete="tel" placeholder="For CHW referral follow-up">
                     </div>
                     <div class="field floating full">
-                        <label class="form-label" for="imageType">Image Type</label>
-                        <select class="form-select" id="imageType" name="image_type">
+                        <label class="form-label" for="imageType">Anatomical Modality*</label>
+                        <select class="form-select" id="imageType" name="image_type" aria-describedby="modalityGuidanceBox">
                             {% for option in image_type_options %}
                                 <option value="{{ option }}">{{ option }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="field floating full">
-                        <label class="form-label" for="notes">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
+                        <label class="form-label" for="notes">Clinical / Field Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Symptoms, pregnancy status, recent supplementation, or lighting notes"></textarea>
                     </div>
-                    <button class="btn btn-primary btn-lg full analyze-button" id="submitScanButton" {% if vercel_lightweight|default(false) or not predictor_loaded %}disabled{% endif %}>
+
+                    <div class="screening-options-card full">
+                        <label class="screening-toggle-row" for="highSensitivityMode">
+                            <input type="checkbox" id="highSensitivityMode" name="high_sensitivity_mode" value="1">
+                            <div>
+                                <strong>High-Sensitivity CHW Triage Mode (Provisional 0.255 Threshold)</strong>
+                                <span>Lowers the screening threshold from 0.50 to 0.255 to prioritize catching borderline cases for clinic referral.</span>
+                            </div>
+                        </label>
+
+                        {% if mock_mode_enabled and not (model_ready or predictor_loaded) %}
+                        <label class="screening-toggle-row screening-toggle-row--mock" for="useMockCheckbox">
+                            <input type="checkbox" id="useMockCheckbox" name="use_mock" value="1">
+                            <div>
+                                <strong>Development Demo Mode (Simulated Output — Not Real Inference)</strong>
+                                <span>Real model weights are currently unavailable. Check this box only to preview the downstream results layout with a clearly labeled non-clinical mock record (never saved to patient history).</span>
+                            </div>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <button class="btn btn-primary btn-lg full analyze-button" id="submitScanButton" {% if vercel_lightweight|default(false) %}disabled{% endif %}>
                         <i data-lucide="dna"></i>
-                        <span>Analyze Now</span>
+                        <span>Run Screening Workflow</span>
                         <i data-lucide="arrow-right"></i>
                     </button>
                 </div>
@@ -152,14 +249,37 @@
     </div>
 </section>
 
-<div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+<div id="loadingOverlay" class="loading-overlay" aria-hidden="true" role="dialog" aria-labelledby="loadingOverlayTitle" aria-describedby="loadingOverlayDesc">
     <div class="spinner-card">
         <div class="scan-loader">
             <i data-lucide="dna"></i>
             <span></span>
         </div>
-        <h2>Running AI screening</h2>
-        <p>Scanning image quality, loading model features, generating prediction, and preparing explainability.</p>
+        <h2 id="loadingOverlayTitle">Submitting Scan for Processing</h2>
+        <p id="loadingOverlayDesc">Do not close this tab. Stages below reflect server request progress and will only complete if validated by the backend.</p>
+        <ol class="processing-stages" id="processingStages" aria-label="Screening pipeline stages">
+            <li class="processing-stage is-active" id="stageUpload" data-stage="upload">
+                <span class="stage-indicator" aria-hidden="true">1</span>
+                <div class="stage-copy">
+                    <strong>1. Image Upload &amp; Quality Gate</strong>
+                    <span id="stageUploadStatus">Transmitting image and verifying resolution (&ge;100&times;100 px), blur, and exposure&hellip;</span>
+                </div>
+            </li>
+            <li class="processing-stage is-pending" id="stagePreprocess" data-stage="preprocess">
+                <span class="stage-indicator" aria-hidden="true">2</span>
+                <div class="stage-copy">
+                    <strong>2. Optical Normalization &amp; Feature Extraction</strong>
+                    <span id="stagePreprocessStatus">Awaiting server check (runs when Person 1 normalization module is installed)&hellip;</span>
+                </div>
+            </li>
+            <li class="processing-stage is-pending" id="stagePredict" data-stage="predict">
+                <span class="stage-indicator" aria-hidden="true">3</span>
+                <div class="stage-copy">
+                    <strong>3. AI Screening &amp; Triage</strong>
+                    <span id="stagePredictStatus">Awaiting server check (requires active model checkpoint)&hellip;</span>
+                </div>
+            </li>
+        </ol>
     </div>
 </div>
 {% endblock %}
