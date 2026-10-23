@@ -1,0 +1,13 @@
+include README.md THIRD_PARTY_NOTICES.md HANDOFF.md requirements-tested-py314.txt
+include .gitignore
+recursive-include .github *.yml
+recursive-include docs *.md
+recursive-include integration *.py
+recursive-include examples *.py
+recursive-include tools *.py
+recursive-include tests *.py
+recursive-include reports *.md *.json *.csv
+prune data
+prune build
+prune dist
+global-exclude *.pyc

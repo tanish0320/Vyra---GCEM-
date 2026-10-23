@@ -1,0 +1,43 @@
+{
+  "by_body_part": {
+    "conjunctiva": 209,
+    "fingernail": 1347
+  },
+  "cached_images_and_27_features_exactly_equal": true,
+  "included_samples_recomputed_from_source": 1556,
+  "is_model_evaluation": false,
+  "passed": true,
+  "preprocessing_fingerprint": "4e395393a4f61180bcdcb843cf5eabe826a241d9f698d785d2d6465cc98cbea2",
+  "source_and_manifest_verification": {
+    "errors": [],
+    "inventory_images_checked": 5122,
+    "leakage": {
+      "duplicate_group_id_overlap": 0,
+      "nail_patient_independence_verified": false,
+      "passed": true,
+      "patient_id_overlap": 0,
+      "source_group_id_overlap": 0
+    },
+    "passed": true
+  },
+  "statuses_by_source_class": {
+    "eyes_defy_anemia:no_source_binary_label": {
+      "included": 209,
+      "invalid:EXCESSIVE_GLARE": 1,
+      "quarantined:unresolved_cross_patient_perceptual_candidate": 7,
+      "unlabeled:missing_laboratory_hb": 1
+    },
+    "ghana_fingernails:0": {
+      "duplicate:exact_duplicate": 611,
+      "included": 580,
+      "invalid:EXCESSIVE_GLARE": 78,
+      "invalid:IMAGE_TOO_SMALL": 426
+    },
+    "ghana_fingernails:1": {
+      "duplicate:exact_duplicate": 882,
+      "included": 767,
+      "invalid:EXCESSIVE_GLARE": 124,
+      "invalid:IMAGE_TOO_SMALL": 792
+    }
+  }
+}

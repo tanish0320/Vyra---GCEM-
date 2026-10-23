@@ -1,0 +1,43 @@
+{
+  "artifact_sha256": {
+    "manifests/dataset_inventory.csv": "5fc8dabc1411cc5c1ecb6472901e17e57d36d2b5fd03be6ad8e4e9f6aa54ef8a",
+    "manifests/duplicate_audit.csv": "96ede679028a36fb8d0078516e69ca3228bf39a7041e8374d9b2d7930de6002d",
+    "manifests/features.csv": "b4dddca84dd85966e94a3b5013681ce5b3fa856819ca601153e24200a80dd844",
+    "manifests/sample_manifest.csv": "55225a7aa9de1034470936c52b3cacceda3df5a1fafe01da776b4e55976c1b50",
+    "reports/audit_summary.json": "2a25558188f1484ab236de8b0a1e1ca5a7d74c842d592820300516e303770aec",
+    "reports/configuration.json": "380fb97822b2b61c49ec37169fc0e77f2d0b2687e9fc664543b9fc1ef663a74e",
+    "splits/test.csv": "2fd607d0844106de32b8e6755a11b936915fc950b25289a37de110b270b513f6",
+    "splits/train.csv": "d056fef2322fd21ebc6879a08ea763182e51fc699628b43acac1830ac4ef3747",
+    "splits/validation.csv": "147c5463f05b3c723352a6953af907c9ecc7e58f7e3b765a47975871ee4863ba",
+    "verified_splits/test.csv": "7d809ea75c96b7c179adccaf79f8e5adef0341725b4173d1593e67dc58cc212c",
+    "verified_splits/train.csv": "9c1fe7d85efc45f3bed15b112a728cd688a1b80e2f208338f53e71ab2a850b4c",
+    "verified_splits/validation.csv": "acea25b6501a67b6066cd79b579250b955dd40effe4d9619a0293d59d420f607"
+  },
+  "phash_radius": 6,
+  "preparation_fingerprint": "16992fcd100f4c74033c8658ce592daff0a487ec4d74057a402029ce7174645f",
+  "preprocessing_fingerprint": "4e395393a4f61180bcdcb843cf5eabe826a241d9f698d785d2d6465cc98cbea2",
+  "preprocessing_version": "1.0.0",
+  "runtime": {
+    "Pillow": "13.0.0",
+    "libarchive-c": "5.3",
+    "numpy": "2.5.4",
+    "opencv-python-headless": "5.0.0.93",
+    "openpyxl": "3.1.5",
+    "platform": "Linux",
+    "python": "3.14.6",
+    "scipy": "1.18.1"
+  },
+  "seed": 42,
+  "sources": {
+    "eyes": {
+      "kind": "archive",
+      "name": "eyes-defy.zip",
+      "sha256": "4636959aa2ae17c50a1e97fe5e7271d76bd4e9a328bb0d6133a453d96b95ab3e"
+    },
+    "nails": {
+      "kind": "archive",
+      "name": "Detection of Anemia using Colour of the Fingernails Image Datasets from Ghana.zip",
+      "sha256": "fe07970fe23f9d243b52812f170c2996751ed125923ea330408883d0110d0b50"
+    }
+  }
+}

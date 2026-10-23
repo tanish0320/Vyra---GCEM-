@@ -1,0 +1,10 @@
+.venv/
+*.zip
+*.rar
+__pycache__/
+.pytest_cache/
+person1/data/
+person1/dist/
+person1/build/
+*.egg-info/
+
