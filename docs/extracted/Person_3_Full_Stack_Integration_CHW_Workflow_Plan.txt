@@ -1,0 +1,175 @@
+PERSON 3
+
+Full-Stack Application, Integration & CHW Workflow
+
+24-hour hackathon • Deliverable implementation plan • Source-aligned to Anemia Screening Hackathon Project Guide
+
+Operating principle: fork-and-graft the existing RAHULPATEL2002/anemia-detection Flask application; do not rebuild the full stack from scratch.
+
+Mission
+
+Own the runnable application and end-to-end integration. Fork and retain the existing Flask/Jinja2/Vanilla JavaScript scaffold, mobile-first capture workflow, persistence and PDF generation; connect real preprocessing/model outputs and deliver the CHW referral experience.
+
+Source-aligned requirements
+
+Use RAHULPATEL2002/anemia-detection as the primary scaffold; retain Flask, mobile-responsive UI, rear-camera capture preference, image quality gate, database persistence and PDF report capability where functioning.
+
+Expose a single end-to-end flow: patient/demographic entry → conjunctiva or fingernail capture/upload → image validation and normalization → inference → result/triage → history/referral PDF.
+
+Display a visual inspection sequence: raw image → glare-corrected/normalized ROI and ITA badge → Grad-CAM when available.
+
+Implement the guide’s Green/Yellow/Red triage cards, demographic-aware thresholds and referral slip, but label the system as a prototype and verify threshold logic with the team before presenting it as clinical guidance.
+
+Do not rebuild as a native mobile app; the guide explicitly prioritizes the existing responsive web app.
+
+Work plan by time
+
+Window
+
+Tasks
+
+Deliverable / exit check
+
+H0–H2
+
+Fork/clone the primary repository; create a reproducible environment; run the baseline UI and /api/predict endpoint. Assign integration ownership and branch conventions.
+
+App starts locally and a baseline flow is demonstrated or blocker logged.
+
+H2–H4
+
+Inspect templates/static assets, app.py, image_validator.py, storage_utils.py and pdf_report.py. Agree API schema with Person 2 and preprocessing call with Person 1.
+
+Integration contract and file ownership documented.
+
+H3–H8
+
+Keep existing capture/upload, validation and storage working. Build/adjust patient intake fields, anatomical modality selection and result-page layout.
+
+Working UI with mock response clearly labelled as mock during development.
+
+H6–H12
+
+Implement a service adapter that calls Person 1’s normalization and Person 2’s inference without embedding model logic in route handlers. Add timeouts/errors and useful messages.
+
+Backend can call the shared pipeline; invalid-image path works.
+
+H8–H15
+
+Implement result presentation: Hb estimate if genuinely available, probability/classification, quality warnings, raw/normalized preview and Grad-CAM if returned.
+
+Result screen connected to real outputs or clearly marked fallback.
+
+H12–H18
+
+Implement Green/Yellow/Red referral workflow, demographic inputs, referral status and SQLite persistence; update PDF to include patient/scan ID, result, uncertainty/limitations and referral destination.
+
+Patient history and downloadable referral PDF work end-to-end.
+
+H17–H20
+
+Add evaluation/analytics view for actual model metrics supplied by Person 2; show dataset/split provenance and stratified results only if available.
+
+Metrics page uses real evaluation artifacts, not hardcoded claims.
+
+H20–H22
+
+Integration freeze; test normal and failure paths, fresh app start, file upload/camera flow, persistence and PDF generation.
+
+Release candidate; no mock values in production/demo path unless explicitly labelled.
+
+H22–H24
+
+Prepare stable demo dataset/images, deployment/local fallback, short demo script and presentation flow. Avoid last-minute framework changes.
+
+Repeatable demo from clean start.
+
+Implementation checklist
+
+Preserve existing routes and schema where practical; adapt the scaffold instead of replacing it.
+
+Keep the prediction service behind one adapter so the app can switch from a mock to real inference without rewriting the UI.
+
+Persist a scan ID, timestamp, anatomical modality, model output, quality warnings, referral status and generated report reference as supported by the existing storage layer.
+
+Show model limitations and recommend confirmatory clinical testing; do not state that a smartphone image definitively diagnoses anemia.
+
+Do not hardcode model metrics, calibration values, patient data or Hb values into the production path.
+
+Use safe handling for personal data; for the demo, use synthetic/demo patient details unless real consent and authorization are in place.
+
+Suggested result-screen fields
+
+Section
+
+Content
+
+Capture
+
+Patient/scan identifier, age and relevant demographic inputs, selected body part, image-quality status.
+
+Image pipeline
+
+Raw image, normalized ROI, ITA/feature metadata when available, Grad-CAM when available.
+
+Model result
+
+Hb estimate in g/dL only if returned by the regression model; anemia probability/classification; calibration status and warning.
+
+Triage
+
+Green/Yellow/Red workflow state based on verified rules; referral recommendation and status.
+
+Report/history
+
+Saved scan history and downloadable CHW referral PDF; clearly marked prototype/confirmatory-test note.
+
+Dependencies and handoffs
+
+Needs from
+
+Need
+
+Provide to
+
+Person 1
+
+Callable preprocessing module, metadata fields and preview images.
+
+Person 1: UI needs for visual inspection and invalid-image behavior.
+
+Person 2
+
+Stable inference callable/endpoint, output schema, metrics and explanation artifacts.
+
+Person 2: actual UI display constraints and integration failures.
+
+Acceptance criteria
+
+A user can complete the core flow from image capture/upload to a saved result and PDF from a clean application start.
+
+The app handles invalid image, unavailable model, missing output and PDF/database errors without crashing.
+
+Any mock/fallback output is explicitly labelled and cannot be mistaken for a genuine model prediction.
+
+The UI is mobile-responsive and retains the base scaffold’s key functionality.
+
+Definition of done and handoff
+
+Commit working code to the agreed branch and include a short README section with setup/run instructions.
+
+Provide one reproducible test or example input and record observed output; never label mock output as a real model result.
+
+Tell the integration owner what is implemented, what is incomplete, known limitations, and exact files changed.
+
+Do not claim clinical diagnostic performance without evaluation against laboratory-measured hemoglobin and a leakage-safe test set.
+
+Scope guardrails from the source guide
+
+Do not build a native Android/iOS app; use the existing mobile-responsive web application.
+
+Do not train U-Net/Mask R-CNN from scratch, attempt INT4 quantization, train GAN/diffusion augmentation, or deploy PyTorch inference as Vercel serverless functions.
+
+Treat dual-modality eye+nail fusion, the high-sensitivity toggle, leakage audit badge, and PWA as stretch goals only after the end-to-end core works.
+
+The system is a screening aid/prototype, not a substitute for confirmatory CBC testing or professional clinical judgment.

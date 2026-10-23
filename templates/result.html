@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Result | AnemiaVision AI{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/result.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set is_safe = not scan.is_anemic %}
+{% set is_amber = scan.risk_level in ['Low-Medium Risk', 'Uncertain', 'Possible Anemia', 'Medium Risk'] %}
+<section class="result-hero {% if is_safe %}is-safe{% elif is_amber %}is-amber{% else %}is-danger{% endif %}">
+    <div class="page-wrap result-hero-inner">
+        <span class="scan-id-badge">{{ scan.public_scan_id }}</span>
+        <div class="result-symbol" aria-hidden="true">
+            <svg viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52"></circle>
+                {% if is_safe %}
+                    <path d="M36 62l16 16 34-40"></path>
+                {% else %}
+                    <path d="M60 28v42M60 86v2"></path>
+                {% endif %}
+            </svg>
+        </div>
+        <span class="section-kicker">AI verdict</span>
+        <h1>{{ scan.verdict_title }}</h1>
+        <p>{{ scan.risk_explanation }}</p>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+        <div class="confidence-panel reveal">
+            <div class="confidence-gauge">
+                <svg viewBox="0 0 140 140">
+                    <circle class="gauge-track" cx="70" cy="70" r="56"></circle>
+                    <circle class="gauge-progress {% if is_safe %}safe{% elif is_amber %}amber{% else %}danger{% endif %}" cx="70" cy="70" r="56" data-gauge-progress="{{ scan.confidence_percent }}"></circle>
+                </svg>
+                <span class="confidence-value">{{ "%.1f"|format(scan.confidence_percent) }}%</span>
+            </div>
+            <div>
+                <span class="section-kicker">Confidence meter</span>
+                <h2>AI Confidence: <span class="mono">{{ "%.1f"|format(scan.confidence_percent) }}%</span></h2>
+                <div class="confidence-meter large">
+                    <div class="confidence-fill" data-progress="{{ scan.confidence_percent }}"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-grid info-row">
+            <article class="metric-card reveal">
+                <span class="section-kicker">Risk level</span>
+                <h3>{{ scan.risk_level }}</h3>
+                <p>{{ scan.hemoglobin_estimate }}</p>
+            </article>
+            <article class="metric-card reveal">
+                <span class="section-kicker">Medical advice</span>
+                <ul class="advice-list">
+                    {% for item in scan.medical_advice[:3] %}
+                        <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </article>
+            <article class="metric-card reveal">
+                <span class="section-kicker">Patient info</span>
+                <dl class="patient-list">
+                    <div><dt>Name</dt><dd>{{ scan.patient_name }}</dd></div>
+                    <div><dt>Age</dt><dd>{{ scan.age or "N/A" }}</dd></div>
+                    <div><dt>Gender</dt><dd>{{ scan.gender or "N/A" }}</dd></div>
+                    <div><dt>Date</dt><dd>{{ scan.created_at.strftime("%d %b %Y, %H:%M") }}</dd></div>
+                </dl>
+            </article>
+        </div>
+
+        <section class="surface-card reveal">
+            <div class="section-header">
+                <div>
+                    <span class="section-kicker">Explainability</span>
+                    <h2>Original vs Grad-CAM Heatmap</h2>
+                    <p>Grad-CAM highlights the image regions that most influenced the prediction.</p>
+                </div>
+            </div>
+            <div class="gradcam-grid">
+                <figure class="result-figure">
+                    <img src="{{ scan.image_url }}" alt="Original uploaded scan image" class="result-image" loading="lazy">
+                    <figcaption>Original Image</figcaption>
+                </figure>
+                <figure class="result-figure comparison-shell">
+                    <div class="comparison">
+                        <img src="{{ scan.image_url }}" alt="" class="comparison-base" loading="lazy">
+                        {% if scan.gradcam_url %}
+                            <img src="{{ scan.gradcam_url }}" alt="Grad-CAM heatmap overlay" class="comparison-overlay" loading="lazy">
+                        {% else %}
+                            <div class="comparison-overlay missing">Grad-CAM unavailable</div>
+                        {% endif %}
+                        <input type="range" min="0" max="100" value="55" class="comparison-slider" aria-label="Compare original and Grad-CAM images">
+                    </div>
+                    <figcaption>Grad-CAM Overlay</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <div class="action-row result-actions reveal">
+            {% if persisted and pdf_url %}
+                <a href="{{ pdf_url }}" class="btn btn-primary btn-lg"><i data-lucide="download"></i> Download PDF Report</a>
+            {% else %}
+                <button type="button" class="btn btn-primary btn-lg" disabled><i data-lucide="download"></i> PDF unavailable</button>
+            {% endif %}
+            <a href="{{ url_for('scan_page') }}" class="btn btn-outline-secondary btn-lg"><i data-lucide="refresh-cw"></i> New Scan</a>
+            <a href="{{ url_for('history_page') }}" class="btn btn-outline-secondary btn-lg"><i data-lucide="clipboard-list"></i> View History</a>
+            <button type="button" class="btn btn-outline-secondary btn-lg" id="printReportButton"><i data-lucide="printer"></i> Print</button>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script defer>
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".comparison").forEach((comparison) => {
+        const slider = comparison.querySelector(".comparison-slider");
+        const overlay = comparison.querySelector(".comparison-overlay");
+        const update = () => {
+            if (overlay) overlay.style.clipPath = `inset(0 ${100 - Number(slider.value)}% 0 0)`;
+        };
+        slider?.addEventListener("input", update);
+        update();
+    });
+});
+</script>
+{% endblock %}

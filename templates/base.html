@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>{% block title %}AnemiaVision AI{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    {% block page_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body data-endpoint="{{ request.endpoint or '' }}">
+    <a href="#main-content" class="skip-link">Skip to content</a>
+    <canvas id="bg-canvas" aria-hidden="true"></canvas>
+    <div class="bg-orbs" aria-hidden="true">
+        <span class="bg-orb" style="--orb-size:360px;--orb-x:4%;--orb-y:8%;--orb-color:var(--accent-primary);--orb-speed:18s"></span>
+        <span class="bg-orb" style="--orb-size:420px;--orb-x:66%;--orb-y:10%;--orb-color:var(--accent-secondary);--orb-speed:22s"></span>
+        <span class="bg-orb" style="--orb-size:300px;--orb-x:78%;--orb-y:60%;--orb-color:var(--accent-cyan);--orb-speed:20s"></span>
+        <span class="bg-orb" style="--orb-size:260px;--orb-x:12%;--orb-y:72%;--orb-color:var(--accent-rose);--orb-speed:24s"></span>
+        <span class="bg-orb" style="--orb-size:340px;--orb-x:42%;--orb-y:44%;--orb-color:var(--accent-emerald);--orb-speed:26s"></span>
+    </div>
+    <div class="cursor-glow" aria-hidden="true"></div>
+
+    <header class="site-header">
+        <nav class="nav-shell" aria-label="Primary navigation">
+            <a href="{{ url_for('index') }}" class="brand" aria-label="AnemiaVision AI home">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" role="img">
+                        <path d="M22 8c18 10 18 38 0 48M42 8c-18 10-18 38 0 48" fill="none" stroke="url(#dnaGradient)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M24 16h16M21 26h22M21 38h22M24 48h16" fill="none" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="dnaGradient" x1="8" y1="8" x2="56" y2="56">
+                                <stop stop-color="#6366f1"/>
+                                <stop offset="0.55" stop-color="#8b5cf6"/>
+                                <stop offset="1" stop-color="#06b6d4"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </span>
+                <span class="brand-name"><strong>AnemiaVision</strong><sup>AI</sup></span>
+            </a>
+
+            <div class="nav-links">
+                <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+                <a class="nav-link {% if request.endpoint == 'scan_page' %}active{% endif %}" href="{{ url_for('scan_page') }}">Scan</a>
+                <a class="nav-link {% if request.endpoint == 'history_page' %}active{% endif %}" href="{{ url_for('history_page') }}">History</a>
+                <a class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}">Analytics</a>
+                <a class="nav-link {% if request.endpoint == 'about_page' %}active{% endif %}" href="{{ url_for('about_page') }}">Docs</a>
+                <a class="nav-link {% if request.endpoint == 'author_page' %}active{% endif %}" href="{{ url_for('author_page') }}">Author</a>
+            </div>
+
+            <div class="nav-actions">
+                <div class="live-status" id="liveStatus" role="status" aria-live="polite">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span data-status-label>System Online</span>
+                </div>
+                <button class="btn icon-btn mobile-menu-btn" type="button" data-drawer-open aria-label="Open navigation">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <div id="drawerBackdrop" class="drawer-backdrop" aria-hidden="true"></div>
+    <aside id="mobileDrawer" class="mobile-drawer" aria-label="Mobile navigation">
+        <div class="drawer-head">
+            <a href="{{ url_for('index') }}" class="brand">
+                <span class="brand-mark" aria-hidden="true"><i data-lucide="dna"></i></span>
+                <span class="brand-name"><strong>AnemiaVision</strong><sup>AI</sup></span>
+            </a>
+            <button class="btn icon-btn" type="button" data-drawer-close aria-label="Close navigation">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="drawer-links">
+            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+            <a class="nav-link {% if request.endpoint == 'scan_page' %}active{% endif %}" href="{{ url_for('scan_page') }}">Scan</a>
+            <a class="nav-link {% if request.endpoint == 'history_page' %}active{% endif %}" href="{{ url_for('history_page') }}">History</a>
+            <a class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}">Analytics</a>
+            <a class="nav-link {% if request.endpoint == 'about_page' %}active{% endif %}" href="{{ url_for('about_page') }}">Docs</a>
+            <a class="nav-link {% if request.endpoint == 'author_page' %}active{% endif %}" href="{{ url_for('author_page') }}">Author</a>
+        </div>
+    </aside>
+
+    <div class="app-shell">
+        <main id="main-content" class="site-main">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="toast-stack" aria-live="polite" aria-atomic="true">
+                        {% for category, message in messages %}
+                            <div class="toast app-toast app-toast-{{ category if category else 'message' }}" role="status">
+                                <div class="toast-body">{{ message }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="app-footer">
+            <div class="page-wrap">
+                <div class="footer-grid">
+                    <div>
+                        <a href="{{ url_for('index') }}" class="brand">
+                            <span class="brand-mark" aria-hidden="true"><i data-lucide="dna"></i></span>
+                            <span class="brand-name"><strong>AnemiaVision</strong><sup>AI</sup></span>
+                        </a>
+                        <p style="margin-top:1rem">Hospital-grade anemia screening from smartphone images with explainable AI.</p>
+                        <p style="margin-top:0.75rem">Developed by <a href="{{ url_for('author_page') }}" class="footer-credit-link">Rahul Patel</a>, B.Tech ECE student at IIIT Surat.</p>
+                        <p style="margin-top:0.75rem">{{ disclaimer_text }}</p>
+                    </div>
+                    <div>
+                        <span class="section-kicker">Quick links</span>
+                        <div class="footer-links">
+                            <a href="{{ url_for('scan_page') }}">New scan</a>
+                            <a href="{{ url_for('history_page') }}">History</a>
+                            <a href="{{ url_for('analytics_page') }}">Analytics</a>
+                            <a href="{{ url_for('about_page') }}">Docs</a>
+                            <a href="{{ url_for('author_page') }}">Author</a>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="section-kicker">Stack</span>
+                        <div class="tech-badges">
+                            <span>Flask</span>
+                            <span>PyTorch</span>
+                            <span>EfficientNet-B3</span>
+                            <span>Grad-CAM</span>
+                            <span>Chart.js</span>
+                            <span>Postgres</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <span>&copy; {{ current_year }} AnemiaVision AI. Developed by Rahul Patel.</span>
+                    <span>Screening assistance only, not clinical diagnosis.</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="{{ url_for('static', filename='js/background.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/scroll-reveal.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,28 @@
+databases:
+  - name: anemia-detection-db
+    plan: free
+    databaseName: anemia_detection
+    user: anemia_detection
+
+services:
+  - type: web
+    name: anemia-detection
+    runtime: docker
+    plan: free
+    numInstances: 1
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: anemia-detection-db
+          property: connectionString
+      - key: ANEMIA_ENABLE_GRADCAM
+        value: "true"
+      - key: ANEMIA_GUNICORN_WORKERS
+        value: "1"
+      - key: ANEMIA_GUNICORN_TIMEOUT
+        value: "180"
+      - key: ANEMIA_TORCH_THREADS
+        value: "1"

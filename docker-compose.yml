@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anemia-vision-ai
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: "5000"
+      FLASK_SECRET_KEY: "change-this-before-production"
+      MAX_UPLOAD_MB: "16"
+      ANEMIA_DATASET_ROOT: "/app/data"
+      ANEMIA_RATE_LIMIT_PER_MINUTE: "10"
+      ANEMIA_RATE_LIMIT_WINDOW_SECONDS: "60"
+      ANEMIA_GUNICORN_WORKERS: "1"
+      ANEMIA_GUNICORN_TIMEOUT: "180"
+    volumes:
+      - ./data:/app/data
+      - ./database:/app/database
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+      - ./static/uploads:/app/static/uploads
+      - ./static/gradcam:/app/static/gradcam
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped

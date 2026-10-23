@@ -1,0 +1,62 @@
+{
+  "model_version": "vyra-dualhead-efficientnet-b3",
+  "checkpoint": "C:\\Users\\urbra\\OneDrive\\Desktop\\Projects\\VYRA\\checkpoints\\best_dual_head.pth",
+  "test_dataset_size": 1025,
+  "classification": {
+    "test_samples": 1025,
+    "accuracy": 0.584390243902439,
+    "sensitivity_recall": 0.5394736842105263,
+    "specificity": 0.6498800959232613,
+    "precision": 0.6919831223628692,
+    "f1_score": 0.6062846580406654,
+    "roc_auc": 0.5816373217215701,
+    "brier_score": 0.24714854071765896,
+    "expected_calibration_error": 0.11014458990678556,
+    "confusion_matrix": {
+      "TN": 271,
+      "FP": 146,
+      "FN": 280,
+      "TP": 328
+    },
+    "temperature_scaling_T": 1.5026911497116089
+  },
+  "hemoglobin_regression": {
+    "paired_samples": 174,
+    "mae_g_dl": 3.42631816315925,
+    "rmse_g_dl": 3.8720523174765273,
+    "r2_score": -1.0719447459468232,
+    "bland_altman": {
+      "mean_bias_g_dl": -3.0413656399167817,
+      "sd_bias": 2.4033476768873316,
+      "loa_upper_95_g_dl": 1.6691958067823887,
+      "loa_lower_95_g_dl": -7.751927086615952
+    }
+  },
+  "stratified_subgroups": {
+    "dataset_cp_anemic_v2": {
+      "samples": 131,
+      "accuracy": 0.5801526717557252,
+      "f1": 0.5528455284552846
+    },
+    "dataset_eyes_defy_anemia": {
+      "samples": 43,
+      "accuracy": 0.5813953488372093,
+      "f1": 0.0
+    },
+    "dataset_ghana_fingernails": {
+      "samples": 851,
+      "accuracy": 0.5851938895417156,
+      "f1": 0.6248671625929861
+    },
+    "modality_conjunctiva": {
+      "samples": 174,
+      "accuracy": 0.5804597701149425,
+      "f1": 0.48226950354609927
+    },
+    "modality_fingernail": {
+      "samples": 851,
+      "accuracy": 0.5851938895417156,
+      "f1": 0.6248671625929861
+    }
+  }
+}

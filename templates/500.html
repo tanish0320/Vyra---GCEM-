@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error | AnemiaVision AI{% endblock %}
+{% block page_title %}System Recovery{% endblock %}
+
+{% block content %}
+<div class="page-wrap section-tight">
+<section class="surface-card fade-in-up text-center">
+    <span class="eyebrow">500 error</span>
+    <h2>The system needs a moment</h2>
+    <p class="text-secondary">
+        An unexpected server issue interrupted this request. No clinical diagnosis should be made from a failed screen.
+        Please retry shortly or return to the dashboard.
+    </p>
+    <div class="hero-actions justify-content-center mt-4">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Return to Dashboard</a>
+        <a href="{{ url_for('scan_page') }}" class="btn btn-outline-secondary">Try Another Scan</a>
+    </div>
+</section>
+</div>
+{% endblock %}

@@ -1,0 +1,157 @@
+PERSON 2
+
+AI/ML, Hemoglobin Estimation & Evaluation
+
+24-hour hackathon • Deliverable implementation plan • Source-aligned to Anemia Screening Hackathon Project Guide
+
+Operating principle: fork-and-graft the existing RAHULPATEL2002/anemia-detection Flask application; do not rebuild the full stack from scratch.
+
+Mission
+
+Own the model/inference/evaluation workstream. Adapt the EfficientNet-B3-based scaffold rather than starting a model from scratch; aim for joint anemia classification and continuous hemoglobin regression, and report only metrics that the available labelled data and time actually support.
+
+Source-aligned requirements
+
+The source repository’s existing head is binary classification; continuous Hb regression in g/dL is a required architectural change, not an existing guaranteed capability.
+
+Use a dual-head design: classification probabilities plus a positive continuous Hb estimate. Fuse the visual embedding with Person 1’s colorimetric features and body-part encoding if feasible.
+
+The guide proposes a weighted joint loss: L_total = 0.7 × L_CE + 0.3 × L_MSE, inverse-frequency class weighting, and accuracy-first early stopping. Treat these as starting settings to validate, not guaranteed optimal values.
+
+Evaluation must go beyond accuracy: MAE/RMSE for Hb regression, calibration diagnostics for probabilities, confusion matrices/sensitivity/specificity, and Bland–Altman bias/95% limits of agreement when paired Hb predictions and laboratory measurements are available.
+
+Work plan by time
+
+Window
+
+Tasks
+
+Deliverable / exit check
+
+H0–H2
+
+Run the forked repository; inspect model.py, train.py, predict.py, existing checkpoints, dependencies and data assumptions. Establish a fallback using the existing classifier.
+
+Baseline inference works or a specific blocker is documented.
+
+H2–H5
+
+Agree with Person 1 on normalized image shape, feature-vector length/order and body-part encoding. Agree with Person 3 on JSON/API output fields.
+
+Written model input/output contract.
+
+H4–H8
+
+Build data loader for the leakage-safe split; confirm laboratory Hb units/labels and mapping. Inspect class balance and missing labels.
+
+Dataset loads reproducibly; label and unit audit recorded.
+
+H6–H11
+
+Implement/adapt model with classification and regression heads. Fuse EfficientNet-B3 embedding with colorimetric features where feasible; use Softplus or another positive-output constraint for Hb.
+
+Model forward pass returns class logits/probabilities and Hb estimate.
+
+H8–H14
+
+Train/fine-tune only if data, compute and time allow. Use validation-only model selection/early stopping; do not tune on test set. Preserve best checkpoint.
+
+Checkpoint or clearly documented baseline/fallback; training logs.
+
+H12–H16
+
+Implement inference callable and connect normalization/features. Add probability calibration using validation data if feasible; never fit calibration on test data.
+
+Stable prediction API with errors handled.
+
+H14–H19
+
+Generate evaluation: MAE, RMSE, classification confusion matrix, sensitivity/specificity, calibration/reliability plot and Bland–Altman plot when data supports them. Stratify by dataset/ITA only where sample sizes support interpretation.
+
+Metrics and plots with test split provenance and caveats.
+
+H19–H21
+
+Freeze model and interfaces; run end-to-end test with Person 3. Verify the response schema and no placeholder values escape into the live result.
+
+Reproducible inference command and integrated test.
+
+H21–H24
+
+Support demo and explain model limitations, dataset scope, calibration status and next steps.
+
+Model handoff, metrics summary and limitations.
+
+Implementation checklist
+
+Keep binary classification and Hb regression outputs separate; do not derive a numeric Hb value from a class label.
+
+Use patient-level split manifests from Person 1. Prevent image-level leakage and do not use the test split for early stopping or calibration.
+
+Report the actual dataset sizes and actual achieved metrics; do not reuse published repository metrics as if they were this team’s results.
+
+If the labelled data cannot support regression within 24 hours, preserve the working classifier and clearly mark Hb regression as unvalidated/unavailable rather than fabricate a result.
+
+Grad-CAM is an explanatory visualization, not proof that the model is clinically correct.
+
+Proposed interface contract
+
+Agree the final signature with teammates before implementation. Suggested shape:
+
+Input
+
+Output
+
+normalized_image; feature_vector; body_part; optional metadata
+
+hb_estimate_g_dl (nullable if unavailable); anemia_probability; predicted_class; model_version; calibration_status; explanation/Grad-CAM reference when available; warnings/errors
+
+Dependencies and handoffs
+
+Needs from
+
+Need
+
+Provide to
+
+Person 1
+
+Stable preprocessing, feature vector order, body-part label and leakage-safe split manifest.
+
+Person 3: callable/API and response schema; evaluation metrics/plots; model checkpoint.
+
+Person 3
+
+Endpoint contract, error-handling expectations and UI display requirements.
+
+Person 1: model input requirements and feature feedback.
+
+Acceptance criteria
+
+The inference interface returns a structured response on a valid sample and a useful error/warning on invalid input.
+
+Any Hb estimate shown is generated by the implemented regression head and labelled with appropriate limitations.
+
+Metrics are computed on a held-out, leakage-aware test split when labels permit; validation and test data are not conflated.
+
+Calibration and Bland–Altman diagnostics are shown only when methodologically supported by available data.
+
+Definition of done and handoff
+
+Commit working code to the agreed branch and include a short README section with setup/run instructions.
+
+Provide one reproducible test or example input and record observed output; never label mock output as a real model result.
+
+Tell the integration owner what is implemented, what is incomplete, known limitations, and exact files changed.
+
+Do not claim clinical diagnostic performance without evaluation against laboratory-measured hemoglobin and a leakage-safe test set.
+
+Scope guardrails from the source guide
+
+Do not build a native Android/iOS app; use the existing mobile-responsive web application.
+
+Do not train U-Net/Mask R-CNN from scratch, attempt INT4 quantization, train GAN/diffusion augmentation, or deploy PyTorch inference as Vercel serverless functions.
+
+Treat dual-modality eye+nail fusion, the high-sensitivity toggle, leakage audit badge, and PWA as stretch goals only after the end-to-end core works.
+
+The system is a screening aid/prototype, not a substitute for confirmatory CBC testing or professional clinical judgment.

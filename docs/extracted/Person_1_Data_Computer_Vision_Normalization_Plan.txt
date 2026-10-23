@@ -1,0 +1,139 @@
+PERSON 1
+
+Data, Computer Vision & Optical Normalization
+
+24-hour hackathon • Deliverable implementation plan • Source-aligned to Anemia Screening Hackathon Project Guide
+
+Operating principle: fork-and-graft the existing RAHULPATEL2002/anemia-detection Flask application; do not rebuild the full stack from scratch.
+
+Mission
+
+Deliver a reproducible, leakage-aware dataset pipeline and a deterministic image-normalization module that reduces lighting and surrounding-skin/camera effects before model inference. Own the data and preprocessing workstream; do not modify the Flask UI or model architecture without agreement.
+
+Source-aligned requirements
+
+Use the guide’s recommended datasets: CP-AnemiC V2 (conjunctiva), EYES-DEFY-ANEMIA (conjunctiva; includes Indian and Italian cohorts), and Ghana Fingernails (nail-bed images). The Kaggle conjunctiva/nail Hb tables are an optional tabular baseline if available.
+
+Use patient-level splitting, targeting 70% train / 10% validation / 20% test, and audit duplicate/augmented-image leakage before splitting.
+
+Implement the guide’s order of operations: ROI isolation/cropping and glare masking → Grey-World white balance → HSV Value-channel CLAHE → CIE LAB ITA calculation and colorimetric feature extraction.
+
+Do not assume these transformations alone prove fairness or clinical validity; provide measurable outputs and document failure cases.
+
+Work plan by time
+
+Window
+
+Tasks
+
+Deliverable / exit check
+
+H0–H2
+
+Join repo kickoff; inspect image formats, labels, patient identifiers and existing validation. Agree image/body-part representation and function contract with Person 2.
+
+Dataset inventory and agreed interface; no conflicting edits to model.py/app.py.
+
+H2–H5
+
+Download/verify CP-AnemiC V2; obtain EYES-DEFY-ANEMIA and Ghana Fingernails if access permits. Record provenance, labels, patient IDs and missing fields.
+
+data_manifest.csv or equivalent; dataset availability/status recorded.
+
+H4–H8
+
+Implement duplicate detection/leakage checks and patient-level 70/10/20 split. Keep all images from one patient in one partition; do not split augmented copies across partitions.
+
+split manifest; duplicate/leakage audit summary; split counts by dataset and class.
+
+H5–H10
+
+Implement ROI crop/mask using supplied masks where available; otherwise use simple threshold/crop or a manual alignment fallback. Add image-quality checks and glare mask/inpainting where feasible.
+
+normalization.py functions and before/after examples.
+
+H8–H12
+
+Implement Grey-World white balance then HSV+CLAHE on Value channel. Compute ITA from surrounding epidermis where the relevant pixels/ROI exist; extract R/G, R/B, HHR and pallor/gradient features as feasible.
+
+Stable feature vector, metadata and normalization tests.
+
+H12–H16
+
+Integrate directly with Person 2’s input contract; test on images from both anatomical modalities and diverse available lighting/skin-tone examples.
+
+Pass/fail tests; feature names/order documented.
+
+H16–H20
+
+Help generate raw → normalized → Grad-CAM UI assets; inspect preprocessing failures and add a safe rejection/warning path for unusable images.
+
+Demo-ready visual examples and quality warning cases.
+
+H20–H24
+
+Freeze changes; provide final manifest, audit summary, module usage notes and known limitations. Support integration/debugging only.
+
+Tagged/committed module and concise handoff.
+
+Implementation checklist
+
+Create a clear function boundary such as normalize_image(image, body_part) returning normalized_image, feature_vector and metadata. Confirm the exact signature with Person 2 before coding.
+
+Keep feature order stable and document units/ranges; handle missing ITA or missing masks explicitly rather than silently inventing values.
+
+Add tests for unreadable files, tiny/incorrect dimensions, glare-heavy images, grayscale/incorrect color channels and unsupported body-part values.
+
+Retain original image and normalized image separately for the UI’s visual inspection panel.
+
+Record whether each dataset has patient identifiers and laboratory Hb labels; do not infer missing ground truth from image appearance.
+
+Dependencies and handoffs
+
+Needs from
+
+Need
+
+Provide to
+
+Person 2
+
+Expected image tensor/color format, feature-vector order, body-part encoding and model input shape.
+
+Person 2: normalized image, features, ITA/quality metadata, split manifest and leakage report.
+
+Person 3
+
+UI requirements for raw/normalized preview and quality warnings.
+
+Person 3: preview images/metadata and stable preprocessing callable.
+
+Acceptance criteria
+
+A clean command or test can load a sample image and produce a normalized image plus documented features.
+
+Train/validation/test assignment is patient-level; duplicates/augmented copies are checked and no known patient crosses partitions.
+
+The pipeline demonstrates raw and normalized examples and logs failure/warning cases.
+
+No preprocessing output is represented as proof of anemia or as a validated Hb estimate.
+
+Definition of done and handoff
+
+Commit working code to the agreed branch and include a short README section with setup/run instructions.
+
+Provide one reproducible test or example input and record observed output; never label mock output as a real model result.
+
+Tell the integration owner what is implemented, what is incomplete, known limitations, and exact files changed.
+
+Do not claim clinical diagnostic performance without evaluation against laboratory-measured hemoglobin and a leakage-safe test set.
+
+Scope guardrails from the source guide
+
+Do not build a native Android/iOS app; use the existing mobile-responsive web application.
+
+Do not train U-Net/Mask R-CNN from scratch, attempt INT4 quantization, train GAN/diffusion augmentation, or deploy PyTorch inference as Vercel serverless functions.
+
+Treat dual-modality eye+nail fusion, the high-sensitivity toggle, leakage audit badge, and PWA as stretch goals only after the end-to-end core works.
+
+The system is a screening aid/prototype, not a substitute for confirmatory CBC testing or professional clinical judgment.

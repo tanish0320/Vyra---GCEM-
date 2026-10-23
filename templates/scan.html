@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}New Scan | AnemiaVision AI{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/index.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="page-wrap">
+        <span class="section-kicker">AI acquisition workflow</span>
+        <h1><span class="gradient-text">New Patient Scan</span></h1>
+        <p>Capture or upload a conjunctiva or fingernail image, add patient context, then run the screening model.</p>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+        <div class="model-readiness-card {% if predictor_loaded and not vercel_lightweight|default(false) %}model-readiness-card--ready{% elif checkpoint_available and not vercel_lightweight|default(false) %}model-readiness-card--loading{% else %}model-readiness-card--offline{% endif %}" role="status" aria-live="polite">
+            <i data-lucide="{% if vercel_lightweight|default(false) %}monitor-check{% elif predictor_loaded %}cpu{% elif checkpoint_available %}loader-2{% else %}cloud-off{% endif %}"></i>
+            <div>
+                {% if vercel_lightweight|default(false) %}
+                    <strong id="modelStatusBadge">Prediction Unavailable Here</strong>
+                    <p id="modelStatusHint">This Vercel deployment is UI-only. Open the full Docker/Render deployment to run PyTorch screening and save patient history.</p>
+                    {% if full_app_url|default("") %}
+                        <a class="btn btn-primary btn-sm" href="{{ full_app_url }}/scan"><i data-lucide="external-link"></i> Open Full AI App</a>
+                    {% endif %}
+                {% elif predictor_loaded %}
+                    <strong id="modelStatusBadge">Model Ready</strong>
+                    <p id="modelStatusHint">The screening model is loaded and ready for inference.</p>
+                {% elif checkpoint_available %}
+                    <strong id="modelStatusBadge">Model Loading</strong>
+                    <p id="modelStatusHint">Weights are available; the server is loading the model into memory.</p>
+                {% else %}
+                    <strong id="modelStatusBadge">Model Unavailable</strong>
+                    <p id="modelStatusHint">No trained checkpoint was found for this deployment.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <form id="scanForm" method="post" action="{{ url_for('predict_route') }}" enctype="multipart/form-data" class="scan-layout scan-workspace-card">
+            <div class="scan-capture-panel">
+                <div class="scan-tabs" id="scanTabs" role="tablist">
+                    <button class="scan-tab active" id="upload-tab" data-target="#upload-pane" type="button" role="tab">
+                        <i data-lucide="folder-up"></i> Upload Image
+                    </button>
+                    <button class="scan-tab" id="camera-tab" data-target="#camera-pane" type="button" role="tab">
+                        <i data-lucide="camera"></i> Camera Capture
+                    </button>
+                </div>
+
+                <div id="cameraHttpWarning" class="camera-warning d-none" role="alert">
+                    <i data-lucide="lock"></i>
+                    <div>
+                        <strong>Camera needs HTTPS on mobile browsers.</strong>
+                        <p>Open the secure site, or use Upload Image if HTTPS is unavailable.</p>
+                    </div>
+                </div>
+
+                <div class="tab-content">
+                    <div class="tab-pane show active" id="upload-pane" role="tabpanel">
+                        <label for="imageInput" class="dropzone" id="dropzone">
+                            <input type="file" id="imageInput" name="image" accept="image/*" capture="environment" class="visually-hidden">
+                            <span class="dropzone-icon"><i data-lucide="cloud-upload"></i></span>
+                            <strong>Drag & drop a scan image</strong>
+                            <span>or click to upload from camera/gallery</span>
+                            <small id="fileMeta">JPG, PNG, WEBP supported</small>
+                        </label>
+                    </div>
+
+                    <div class="tab-pane" id="camera-pane" role="tabpanel">
+                        <div class="camera-shell">
+                            <video id="cameraFeed" class="camera-feed" playsinline autoplay muted></video>
+                            <canvas id="cameraCanvas" class="d-none"></canvas>
+                            <p id="cameraStatus" class="camera-status">Rear camera is preferred. Keep the image sharp and evenly lit.</p>
+                            <div class="camera-actions">
+                                <button class="btn btn-outline-secondary" type="button" id="startCameraButton"><i data-lucide="video"></i> Start</button>
+                                <button class="btn btn-primary" type="button" id="captureButton"><i data-lucide="scan-line"></i> Capture</button>
+                                <button class="btn btn-outline-secondary d-none" type="button" id="retakeButton"><i data-lucide="rotate-ccw"></i> Retake</button>
+                                <button class="btn btn-success d-none" type="button" id="confirmCaptureButton"><i data-lucide="check"></i> Use Photo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-panel">
+                    <img id="imagePreview" class="preview-image d-none" alt="Selected preview" loading="lazy">
+                    <div id="previewPlaceholder" class="preview-placeholder">
+                        <i data-lucide="image"></i>
+                        Preview appears here after upload or capture.
+                    </div>
+                </div>
+
+                <div class="quality-panel" aria-live="polite">
+                    <span id="qualityStatus" class="quality-pill">Awaiting image</span>
+                    <small id="qualityScore">Quality score will appear here.</small>
+                </div>
+
+                <input type="hidden" id="capturedImageData" name="captured_image_data">
+            </div>
+
+            <div class="scan-form-panel">
+                <div class="section-header compact">
+                    <div>
+                        <span class="section-kicker">Patient info</span>
+                        <h2>Visit details</h2>
+                    </div>
+                    <span class="pill">* Required</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field floating full">
+                        <label class="form-label" for="patientName">Name*</label>
+                        <input class="form-control" id="patientName" name="patient_name" required autocomplete="name">
+                    </div>
+                    <div class="field floating">
+                        <label class="form-label" for="patientAge">Age*</label>
+                        <input class="form-control" id="patientAge" name="age" type="number" min="0" max="120" required inputmode="numeric">
+                    </div>
+                    <div class="field floating">
+                        <label class="form-label" for="gender">Gender*</label>
+                        <select class="form-select" id="gender" name="gender" required>
+                            <option value=""></option>
+                            {% for option in gender_options %}
+                                <option value="{{ option }}">{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field floating full">
+                        <label class="form-label" for="phone">Phone</label>
+                        <input class="form-control" id="phone" name="phone" type="tel" autocomplete="tel">
+                    </div>
+                    <div class="field floating full">
+                        <label class="form-label" for="imageType">Image Type</label>
+                        <select class="form-select" id="imageType" name="image_type">
+                            {% for option in image_type_options %}
+                                <option value="{{ option }}">{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field floating full">
+                        <label class="form-label" for="notes">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="4"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-lg full analyze-button" id="submitScanButton" {% if vercel_lightweight|default(false) or not predictor_loaded %}disabled{% endif %}>
+                        <i data-lucide="dna"></i>
+                        <span>Analyze Now</span>
+                        <i data-lucide="arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+    <div class="spinner-card">
+        <div class="scan-loader">
+            <i data-lucide="dna"></i>
+            <span></span>
+        </div>
+        <h2>Running AI screening</h2>
+        <p>Scanning image quality, loading model features, generating prediction, and preparing explainability.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}" defer></script>
+{% endblock %}

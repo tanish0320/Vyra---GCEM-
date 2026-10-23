@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Patient History | AnemiaVision AI{% endblock %}
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+    <div class="page-wrap">
+        <span class="section-kicker">Search and review</span>
+        <h1><span class="gradient-text">Patient History</span></h1>
+        <p>Filter, compare, export, and archive screening records without losing audit history.</p>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="page-wrap">
+        <div class="history-toolbar reveal">
+            <form method="get" class="filter-grid" data-live-filter-form>
+                <input class="form-control" type="search" name="q" placeholder="Search patient, phone, notes, or ID" value="{{ filters.q }}">
+                <select class="form-select" name="result">
+                    <option value="">All results</option>
+                    <option value="Anemic" {% if filters.result == 'Anemic' %}selected{% endif %}>Anemic</option>
+                    <option value="Non-Anemic" {% if filters.result == 'Non-Anemic' %}selected{% endif %}>Non-Anemic</option>
+                </select>
+                <select class="form-select" name="risk">
+                    <option value="">All risk levels</option>
+                    {% for risk in ['Low Risk', 'Low-Medium Risk', 'Uncertain', 'Possible Anemia', 'Medium Risk', 'High Risk'] %}
+                        <option value="{{ risk }}" {% if filters.risk == risk %}selected{% endif %}>{{ risk }}</option>
+                    {% endfor %}
+                </select>
+                <input class="form-control" type="date" name="start_date" value="{{ filters.start_date }}">
+                <input class="form-control" type="date" name="end_date" value="{{ filters.end_date }}">
+                <button class="btn btn-primary" type="submit"><i data-lucide="filter"></i> Apply</button>
+            </form>
+            <div class="filter-actions">
+                <div class="view-toggle" role="group" aria-label="History view">
+                    <button class="btn icon-btn active" type="button" data-history-view="grid" aria-label="Grid view"><i data-lucide="layout-grid"></i></button>
+                    <button class="btn icon-btn" type="button" data-history-view="list" aria-label="List view"><i data-lucide="list"></i></button>
+                </div>
+                <a href="{{ url_for('export_history_csv', q=filters.q, result=filters.result, risk=filters.risk, start_date=filters.start_date, end_date=filters.end_date) }}" class="btn btn-outline-secondary">
+                    <i data-lucide="download"></i> CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="history-container" data-history-container data-view="grid">
+            {% if scans %}
+                <div class="history-grid">
+                    {% for scan in scans %}
+                        <article class="history-card reveal">
+                            <div class="history-card-head">
+                                <span class="avatar">{{ scan.patient_name[:1]|upper }}</span>
+                                <div>
+                                    <h3>{{ scan.patient_name }}</h3>
+                                    <p>{{ scan.created_at.strftime("%d %b %Y, %H:%M") }} · {{ scan.public_scan_id }}</p>
+                                </div>
+                                <span class="badge {% if scan.is_anemic %}result-badge-danger{% else %}result-badge-success{% endif %}">{{ scan.prediction }}</span>
+                            </div>
+                            <div class="confidence-meter">
+                                <div class="confidence-fill" data-progress="{{ scan.confidence_percent }}"></div>
+                            </div>
+                            <div class="history-meta">
+                                <span>Age {{ scan.age or "N/A" }}</span>
+                                <span>{{ scan.gender or "N/A" }}</span>
+                                <span class="mono">{{ "%.1f"|format(scan.confidence_percent) }}%</span>
+                            </div>
+                            <div class="table-actions">
+                                <a href="{{ url_for('result_page', scan_id=scan.id) }}" class="btn icon-btn" aria-label="View result"><i data-lucide="eye"></i></a>
+                                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn icon-btn" aria-label="Download PDF"><i data-lucide="file-down"></i></a>
+                                <form method="post" action="{{ url_for('delete_scan', scan_id=scan.id) }}" onsubmit="return confirm('Remove this scan from active history? The record stays in the database for audit recovery.');">
+                                    <button class="btn icon-btn btn-outline-danger" type="submit" aria-label="Archive"><i data-lucide="archive"></i></button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                <div class="history-list surface-card">
+                    <div class="table-responsive">
+                        <table class="app-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Date</th><th>Result</th><th>Confidence</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for scan in scans %}
+                                    <tr>
+                                        <td>{{ scan.public_scan_id }}</td>
+                                        <td>{{ scan.patient_name }}</td>
+                                        <td>{{ scan.age or "N/A" }}</td>
+                                        <td>{{ scan.gender or "N/A" }}</td>
+                                        <td>{{ scan.created_at.strftime("%d %b %Y") }}</td>
+                                        <td><span class="badge {% if scan.is_anemic %}result-badge-danger{% else %}result-badge-success{% endif %}">{{ scan.prediction }}</span></td>
+                                        <td>{{ "%.1f"|format(scan.confidence_percent) }}%</td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <a href="{{ url_for('result_page', scan_id=scan.id) }}" class="btn icon-btn"><i data-lucide="eye"></i></a>
+                                                <a href="{{ url_for('export_pdf', scan_id=scan.id) }}" class="btn icon-btn"><i data-lucide="file-down"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-history reveal">
+                    <i data-lucide="folder-search"></i>
+                    <h2>No records match these filters</h2>
+                    <p>Start a new scan or clear filters to review previous screenings.</p>
+                    <a href="{{ url_for('scan_page') }}" class="btn btn-primary">Start First Scan</a>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if pagination.pages > 1 %}
+            <nav class="mt-4" aria-label="History pagination">
+                <ul class="pagination">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('history_page', page=pagination.prev_num, q=filters.q, result=filters.result, risk=filters.risk, start_date=filters.start_date, end_date=filters.end_date, sort=current_sort, order=current_order) }}">Previous</a>
+                    </li>
+                    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('history_page', page=page_num, q=filters.q, result=filters.result, risk=filters.risk, start_date=filters.start_date, end_date=filters.end_date, sort=current_sort, order=current_order) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('history_page', page=pagination.next_num, q=filters.q, result=filters.result, risk=filters.risk, start_date=filters.start_date, end_date=filters.end_date, sort=current_sort, order=current_order) }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

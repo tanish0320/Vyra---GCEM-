@@ -1,0 +1,31 @@
+# virtual env
+.venv/
+venv/
+
+# models & checkpoints
+models/*
+checkpoints/*
+*.pth
+*.pt
+!models/
+!models/temperature_scaling.json
+
+# python
+__pycache__/
+*.pyc
+
+# dataset (ignore raw images, preserve manifests and splits)
+data/raw/
+dataset/
+
+# chronos knowledge graph
+.chronos/
+
+# runtime data
+database/*.db
+reports/*.pdf
+logs/*.log
+logs/evaluation/
+static/uploads/*
+static/gradcam/*
+runtime/

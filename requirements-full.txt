@@ -1,0 +1,16 @@
+torch==2.5.1
+torchvision==0.20.1
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+psycopg[binary]>=3.1,<4
+opencv-python-headless==4.10.0.84
+pillow==10.4.0
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+matplotlib==3.9.2
+seaborn==0.13.2
+reportlab==4.2.5
+tqdm==4.66.6
+colorama==0.4.6
+gunicorn==23.0.0

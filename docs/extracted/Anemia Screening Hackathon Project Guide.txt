@@ -1,0 +1,473 @@
+Technical Architecture and Execution Blueprint for Non-Invasive Anemia Screening and Hemoglobin Estimation
+
+Executive GitHub and Open-Source Audit: Reusing versus Building from Scratch
+
+Developing a deep learning pipeline, an illumination-invariant image preprocessor, a probability calibration layer, and a mobile-responsive community health worker (CHW) referral application from scratch within a 24-hour hackathon window presents a severe scheduling risk. A comprehensive audit of open-source repositories across GitHub and Hugging Face demonstrates that multiple teams have already constructed substantial components of this exact clinical pipeline1. However, no single repository satisfies every requirement of the problem statement out of the box, particularly the simultaneous execution of continuous hemoglobin () regression in grams per deciliter (), explicit skin-tone and lighting normalization, calibrated agreement diagnostics, and a structured clinical referral workflow3.
+
+The optimal execution strategy for a 24-hour sprint is a "Fork-and-Graft" architecture. By cloning the most mature end-to-end production repository as the primary full-stack scaffold—which immediately delivers approximately 75% of the required application—the engineering team can graft specialized preprocessing, regression, and calibration modules from four complementary open-source projects1.
+
+Repository / Model Identifier
+
+Primary Modality & Task
+
+Core Architecture & Tech Stack
+
+Reported Performance Metrics
+
+Strategic Role in a 24-Hour Hackathon
+
+RAHULPATEL2002/anemia-detection (AnemiaVision AI)4
+
+Conjunctiva & Fingernail; Binary Screening + Risk Triage4
+
+PyTorch EfficientNet-B3, Grad-CAM, Flask, Vanilla JS, Chart.js, SQLite/PostgreSQL, ReportLab PDF4
+
+96.2% Accuracy, 0.98 AUC-ROC, 96.0% Sensitivity, 95.0% Specificity7
+
+Primary Base to Fork (80% of App): Provides the complete mobile-first UI, rear-camera capture, quality validator, Grad-CAM slider, database persistence, and PDF report generator4.
+
+JetX-GT/nail-anemia-detector (Hugging Face)5
+
+Fingernail; Screening with High-Sensitivity Triage Mode5
+
+27 Handcrafted Colorimetric Features + [128, 64] MLP Classifier (scikit-learn)5
+
+100% Recall (at 0.255 threshold), 17.1% Specificity; Patient-level split5
+
+Feature & Threshold Graft: Supplies the 27 camera-invariant color ratios (, , pallor indices, spatial gradients) and the adjustable high-sensitivity screening threshold logic5.
+
+TatianaUshakova/Anemia_detection
+
+[cite: 3]
+
+Conjunctiva, Nails, Palms, Tongue; Regression & CNN3
+
+Python modular CLI pipelines for color card correction, ROI segmentation, and RGB regression3
+
+Modular evaluation pipelines (MIT License)3
+
+Preprocessing Graft: Provides the modular color_correction and image_segmentation package structure to demonstrate explicit illumination normalization3.
+
+Pai-88/pallor-hb
+
+[cite: 1]
+
+Conjunctiva (CP-AnemiC benchmark); Screening & Audit1
+
+Python, scikit-learn, duplicate-leakage audit scripts1
+
+Reproducible benchmark controlling for data leakage1
+
+Validation Rigor Graft: Supplies the duplicate-leakage audit protocol to verify that augmented images do not leak across train and test splits1.
+
+Vivisteria11/Anemia-detection-Model
+
+[cite: 2]
+
+Conjunctiva; Edge Binary Classification2
+
+Pretrained MobileNetV2 (120 layers frozen), TensorFlow / .tflite export2
+
+92.5% Accuracy, evaluated via AUC on train/val/test2
+
+Optional Edge Reference: Useful if demonstrating a lightweight .tflite edge export alongside the primary PyTorch server2.
+
+aymen-000/AIQuest_DATATHON & turna1/Computer-Vision
+
+[cite: 8, 9]
+
+Conjunctiva; Baseline CNN Classification8
+
+TensorFlow/Keras custom CNN in Jupyter/Colab + bundled .zip dataset8
+
+91.0% Validation Accuracy over 100 epochs8
+
+Data Fallback Only: Contains ready-to-unzip conjunctiva datasets (anemia dataset-20231113T154638Z-001.zip), though the custom CNN is inferior to EfficientNet-B34.
+
+Deep Dive into the Primary Base Repository: RAHULPATEL2002/anemia-detection
+
+The repository RAHULPATEL2002/anemia-detection, documented in the associated study AnemiaVision: Non-Invasive Anemia Detection via Smartphone Imagery Using EfficientNet-B3 with TrivialAugmentWide, Mixup, and Persistent Patient History Management, represents an ideal foundation for rapid prototyping4. Unlike standard academic repositories that only provide unorganized Jupyter notebooks, this codebase is structured as a modular web application designed specifically for rural community health workers screening 30 to 40 patients per hour without laboratory consumables4.
+
+The codebase is cleanly decoupled into production-ready Python and JavaScript modules4. At the application layer, app.py and config.py power a Flask backend serving a mobile-first Jinja2 and Vanilla JavaScript interface featuring a dark-mode medical glassmorphism theme, rear-camera capture preference, and Chart.js analytics dashboards4. The backend also exposes a rate-limited REST endpoint (POST /api/predict) that accepts Base64-encoded images alongside patient metadata including name, age, gender, phone number, anatomical image type, and clinical notes4. Before any image reaches the neural network, image_validator.py acts as a pre-inference quality gatekeeper that verifies image dimensions, file format, and local quality hints4.
+
+Within the deep learning core, model.py and train.py implement an EfficientNet-B3 backbone operating on  inputs4. Rather than relying on a standard single linear layer, the architecture employs a custom three-layer classification head following Global Average Pooling (): a Linear(1536, 512) layer with Batch Normalization, GELU activation, and Dropout(0.45), followed by a Linear(512, 256) layer with Batch Normalization, GELU activation, and Dropout(0.35), terminating in a Linear(256, 2) Softmax layer10. Crucially, train.py resolves a notorious failure mode in conjunctival convolutional neural network (CNN) training where validation loss oscillations at epoch 3 trigger premature early stopping at 44.9% validation accuracy7. By implementing accuracy-first early stopping alongside TrivialAugmentWide, RandomErasing, Mixup, and inverse-frequency class weighting, validation accuracy increases by 33.5 percentage points as the model converges over 80 epochs to reach 96.2%7. During inference, predict.py and gradcam.py execute calibrated probability pipelines and generate Grad-CAM spatial attention heatmaps rendered via an interactive comparison slider on the frontend, verifying that the network attends to the vascular bed rather than eyelashes or background artifacts4. Finally, storage_utils.py and pdf_report.py persist scan histories (such as public scan IDs formatted as AV-000042) into SQLite for local execution or PostgreSQL for cloud deployment, while generating downloadable clinical PDF reports via ReportLab4.
+
+Critical Architectural Gaps Requiring Modification
+
+Cloning RAHULPATEL2002/anemia-detection without modification leaves three notable vulnerabilities when evaluated against a strict clinical rubric. First, the repository lacks continuous hemoglobin () estimation and regression error reporting. Although the accompanying research paper mentions returning a hemoglobin range estimate10, the implemented neural network head (Linear(256, 2) -> Softmax) and the POST /api/predict JSON payload (prediction, confidence, risk_level) perform binary classification (Anemic versus Non-Anemic) rather than continuous  regression paired with Mean Absolute Error (MAE), Root Mean Squared Error (RMSE), and Bland-Altman agreement limits4.
+
+Second, the baseline codebase lacks explicit skin-tone and color-space normalization. Relying purely on TrivialAugmentWide during training does not explicitly strip clinic-room lighting color casts or quantify model robustness across Fitzpatrick skin types7. Notably, in a subsequent June 2026 study (NeoJaundice-AI), the same author (Patel) introduced an explicit Grey-World White Balance and Individual Typology Angle (ITA) skin-tone normalization pipeline paired with a dual-head classification and regression architecture ()12. Grafting that exact mathematical upgrade back into RAHULPATEL2002/anemia-detection directly addresses the prompt's robustness and estimation requirements. Third, public conjunctiva datasets frequently suffer from data leakage due to augmented duplicates spanning across splits; integrating the duplicate-leakage audit protocol from Pai-88/pallor-hb and the patient-level split verification from JetX-GT/nail-anemia-detector is essential to establish scientific credibility1.
+
+Clinical, Optical, and Algorithmic Mechanics of Non-Invasive Screening
+
+The Physiological Basis of Non-Invasive Pallor Screening
+
+Anemia is clinically characterized by a reduction in functional hemoglobin concentration (, measured in ) or circulating red blood cells, which impairs systemic oxygen transport to peripheral tissues14. While venous blood analysis via a Complete Blood Count (CBC) hematology analyzer remains the diagnostic gold standard, the procedure requires phlebotomy consumables, laboratory infrastructure, and turnaround time that frequently break down in rural or low-income primary care settings16.
+
+In physical diagnosis, clinicians evaluate mucosal pallor across anatomical regions where microcapillary beds lie immediately beneath a translucent epithelium, specifically the palpebral conjunctiva (the inner lining of the lower eyelid), the fingernail bed, the palmar creases, and the tongue3. The palpebral conjunctiva and fingernail bed are uniquely suited for optical computer vision because their overlying tissue layers are virtually devoid of melanocytes11. Because hemoglobin strongly absorbs green and blue wavelengths () while reflecting red wavelengths (), the erythema (redness saturation relative to green and blue reflection) of these melanin-free vascular beds correlates directly with subcutaneous hemoglobin concentration5. Comparative clinical evaluations confirm that palpebral conjunctival pallor yields high diagnostic sensitivity (94.02%) and specificity (93.71%)21, while fingernail beds achieve superior CNN classification accuracy (97%) compared to palmar creases (83%)10.
+
+Optical Confounders and Failure Modes in Uncontrolled Environments
+
+Despite strong physiological foundations, translating smartphone photography into a quantitative hemoglobin meter encounters four severe optical and statistical confounders in unconstrained field settings. The first confounder is illumination drift and specular glare. Ambient light color temperature—ranging from warm tungsten indoor bulbs to cool outdoor daylight—shifts raw RGB channel intensities more drastically than a  drop in blood hemoglobin16. Furthermore, the tear film coating the wet palpebral conjunctiva and the smooth keratin plate of the fingernail produce intense specular reflections when struck by a camera flash or overhead spotlight, saturating all three RGB channels and mimicking severe pallor20.
+
+The second confounder is camera sensor and Image Signal Processing (ISP) heterogeneity. Different smartphone models apply proprietary auto-exposure, non-linear gamma curves, and auto-white-balance matrices that alter absolute pixel intensities between devices6. The third confounder is the skin-tone contrast illusion. Even though the anterior conjunctiva and sub-ungual nail bed contain negligible melanin, unsegmented or loosely cropped images include surrounding periorbital skin or finger epidermis spanning Fitzpatrick Types I through VI12. When a smartphone camera captures a darkly pigmented patient (corresponding to a higher Massey score or lower Individual Typology Angle), the camera's auto-exposure meter increases sensor gain to brighten the dark surrounding skin, artificially over-exposing and washing out the conjunctiva or nail bed12. Moreover, deep CNNs trained on full-eye or full-finger crops without skin-tone normalization frequently learn spurious correlations between background skin pigmentation and cohort-level anemia prevalence rather than true mucosal erythema12.
+
+The fourth confounder is the pure regression collapse trap. A revealing benchmark study (HemoScan, evaluated on 370 fingernail images using OpenCV segmentation and EfficientNet-B0) achieved 90.0% binary classification accuracy, yet its continuous hemoglobin regression suffered a Mean Absolute Error of  and an  score of , which is statistically indistinguishable from predicting the constant dataset mean6. When a deep network is trained exclusively with Mean Squared Error () on a few hundred noisy clinical images, illumination variance dominates the gradient updates, causing the regressor to minimize loss by predicting the global mean () across all samples6.
+
+Public Datasets with Laboratory-Measured Hemoglobin
+
+To train and validate both the conjunctiva and nail-bed pipelines against genuine laboratory ground truth, the system should combine four publicly accessible datasets documented in the clinical literature5.
+
+Dataset Name & Repository Host
+
+Anatomical Modality
+
+Sample Size & Demographics
+
+Ground Truth & Clinical Distribution
+
+Preprocessing & Hackathon Usage Notes
+
+CP-AnemiC V2 (Mendeley Data: doi: 10.17632/m53vz6b7fx.2)20
+
+Palpebral Conjunctiva20
+
+710 children (aged 6–59 months) across 10 hospitals in Ghana (frequently augmented to 2,000–3,550 images)29
+
+Lab CBC  (), age, sex, clinical remarks29. At  cutoff: 424 Anemic, 286 Non-Anemic20.
+
+Primary Conjunctiva Dataset: Archive is only 5.06 MB (Cp-Anameic Dataset V2.zip)26. ROI pre-extracted via triangle thresholding and entropy grayscale under ambient light with flash disabled22. Requires Pai-88/pallor-hb deduplication prior to splitting1.
+
+EYES-DEFY-ANEMIA (EDA) (Kaggle: harshwardhanfartale/eyes-defy-anemia & IEEE Dataport)24
+
+Full Eye & Segmented Palpebral Conjunctiva24
+
+218 patients (217 valid: 122 Italian, 95 Indian; 131 male, 86 female)24
+
+Lab  ranging from 7.0 to 17.4 g/dL33; 91–92 Anemic, 126 Non-Anemic24.
+
+Cross-Skin-Tone & Camera Benchmark: Essential for validating robustness across European (Italian) and South Asian (Indian) skin tones and camera setups20. Includes pre-segmented palpebral conjunctiva masks33.
+
+Ghana Fingernails Dataset (Mendeley Data: doi: 10.17632/2xx4j3kjg2.1)5
+
+Fingernail Bed5
+
+3,406 images from 443–550 pediatric patients (< 6 years old) in Ghana5
+
+Clinical anemia labels and laboratory hemoglobin reference measurements5.
+
+Primary Nail-Bed Dataset: Collected by the same research consortium (Asare, Appiahene, Donkoh) as CP-AnemiC26. Requires strict patient-level splits so multiple fingernails from a single child do not leak between train and test sets5.
+
+Kaggle Conjunctiva & Nail Hb Tables (shahriar26s/anemia-detection-dataset & HemoScan Kaggle repo)6
+
+Conjunctiva / Fingernail RGB + Color Features15
+
+~250–710 patients with annotated nail/conjunctiva ROIs and tabular RGB percentages15
+
+Continuous  () paired with %Red Pixel, %Green Pixel, %Blue Pixel, and sex15.
+
+Instant Tabular Regression Baseline: Enables training a calibrated Ridge, Random Forest, or MLP regressor on color ratios in under 30 seconds while deep CNN weights fine-tune5.
+
+Core Technical Blueprint: Solving the Engineering Requirements
+
+The end-to-end technical architecture operates across four sequential functional stages that sanitize raw smartphone photographs against environmental and physiological confounders before generating calibrated clinical outputs3. In Stage 1 (Smartphone Capture and Region-of-Interest Extraction), the application ingests palpebral conjunctiva or fingernail bed photographs, executes automated blur and format validation, and isolates the vascular region of interest while rejecting specular glare4. In Stage 2 (Optical and Skin-Tone Normalization), the image undergoes Grey-World white balance correction, HSV plus CLAHE illumination standardization, and CIE  Individual Typology Angle () scaling to neutralize clinic lighting casts and auto-exposure bias across diverse skin tones12. In Stage 3 (Hybrid AI Core), deep visual representations from the EfficientNet-B3 backbone are fused with 27 camera-invariant colorimetric ratios to drive dual task heads—a continuous hemoglobin regression head () and a binary anemia classification head—accompanied by a Grad-CAM spatial explainability overlay4. Finally, in Stage 4 (Community Health Worker Triage Application), raw predictions pass through Platt probability calibration and Bland-Altman agreement verification to generate a World Health Organization (WHO) risk-stratified referral PDF4.
+
+Achieving Robustness to Lighting, Skin Tone, and Camera Differences
+
+Within the RAHULPATEL2002/anemia-detection scaffold, inserting a dedicated normalization.py module immediately after image_validator.py establishes a deterministic four-step sequential pipeline3. As established in recent conjunctival and fingernail imaging studies, the exact sequence of preprocessing operations dictates feature integrity; applying color correction prior to background segmentation or omitting normalization alters the chromatic distribution seen by the classifier6.
+
+First, the pipeline executes automated Region-of-Interest (ROI) cropping and specular glare masking. The mucosal bed of the palpebral conjunctiva or the nail plate is isolated using either pre-segmented masks during benchmark training, triangle thresholding and entropy grayscale extraction as deployed in CP-AnemiC, or an interactive touch-seed bounding box in the live mobile interface22. The extracted ROI is converted into the Hue-Saturation-Value (HSV) color space to identify specular reflection pixels caused by tear film or nail shine (where Brightness  and Saturation ), which are masked and reconstructed via OpenCV Telea inpainting so flash artifacts cannot depress mean erythema20.
+
+Second, the pipeline performs Grey-World White Balance followed by HSV-CLAHE illumination normalization. Applying the Grey-World assumption rescales the Red, Green, and Blue channels so their spatial averages equalize to a neutral gray reference, stripping ambient clinic-room lighting color casts12. The white-balanced ROI is then transformed into the HSV color space where Contrast Limited Adaptive Histogram Equalization (CLAHE) is applied strictly to the Value () illumination channel before converting back to RGB20. This procedure attenuates brightness differences across images without distorting the underlying chromaticity (Hue and Saturation) governed by hemoglobin concentration20.
+
+Third, the pipeline implements dermatological skin-tone calibration via the Individual Typology Angle ()12. To neutralize camera auto-exposure bias and verify fairness across skin tones, the preprocessor samples the unsegmented periorbital or finger epidermis surrounding the ROI mask, converts those pixels into the CIE  color space via OpenCV (cv2.cvtColor), and computes the dermatological Individual Typology Angle12:
+
+The resulting  classifies skin pigmentation into six dermatological tiers (Very Light through Dark, with values above  corresponding to lighter skin groups and negative angles corresponding to darker Fitzpatrick types IV–VI)12. Applying an ITA-based scaling factor to the ROI's  (lightness) and  (red-green opponent) channels compensates for sensor gain shifts induced by dark versus light surrounding skin, ensuring that the visual magnitude of pallor remains perceptually consistent across skin tones12.
+
+Fourth, to achieve camera-sensor invariance, the preprocessor extracts 27 dimensionless colorimetric ratios and applies Correlation Alignment (CORAL)5. While distinct smartphone cameras vary in absolute channel sensitivity, dimensionless color ratios cancel out multiplicative sensor gain5. Following the feature engineering architecture of JetX-GT/nail-anemia-detector and the Eyes-Defy/CP-AnemiC cross-dataset studies, the module computes pallor brightness metrics, white-to-pink ratios, redness indices,  and  channel ratios, the Hemoglobin Redness Ratio (), spatial center-versus-edge vascular gradients, and grayscale entropy5. When transferring models across distinct geographic cohorts and cameras—such as training on Ghana's CP-AnemiC and evaluating on Italy and India's Eyes-Defy-Anemia—applying CORAL on the extracted feature space raises cross-dataset generalization by aligning second-order feature covariance matrices20.
+
+Joint Hemoglobin Estimation and Anemia Classification Architecture
+
+To prevent continuous hemoglobin regression from collapsing toward the dataset mean ( in naive single-head CNNs6), the model.py architecture in RAHULPATEL2002/anemia-detection must be upgraded to a Joint Classification and Regression Learning Framework12. This multi-task design mirrors the joint deep network established by the CP-AnemiC benchmark authors29, the multi-body-part BPANet architecture25, and the dual-head NeoJaundice-AI framework12.
+
+In the feature fusion layer, the  deep embedding from the penultimate GELU layer of EfficientNet-B3 is concatenated with the  standardized vector of handcrafted colorimetric ratios and a 2-D anatomical body-part label encoding whether the input is a palpebral conjunctiva or fingernail bed image5. Incorporating explicit body-part labels alongside channel-spatial attention enables a single unified backbone to enhance the salient vascular features of each anatomical site25. The fused representation feeds two parallel task heads: a classification head consisting of a linear layer followed by Softmax that outputs calibrated class probabilities , and a continuous hemoglobin regression head consisting of a two-layer Multi-Layer Perceptron (MLP) with Softplus activation that outputs strictly positive hemoglobin concentration  in 11.
+
+During training, the network is optimized via a weighted dual loss function that combines inverse-frequency class-weighted Cross-Entropy () with continuous Mean Squared Error ()7:
+
+Coupling the regression objective to the classification boundary allows the continuous estimator to benefit from well-established classification gradients, ensuring stable handling of minority severe-anemia samples and driving continuous hemoglobin Mean Absolute Error down toward the benchmark state-of-the-art of 12.
+
+Calibrated Accuracy, Agreement Diagnostics, and Error Reporting
+
+Clinical evaluation of a non-invasive diagnostic aid requires distinguishing between raw neural network confidence and calibrated probability, as well as between linear correlation and clinical measurement interchangeability4.
+
+Probability Calibration and Dual-Threshold Screening Modes
+
+Deep neural networks trained with aggressive data augmentation such as Mixup and TrivialAugmentWide frequently produce under- or over-confident raw softmax probabilities7. Within predict.py, the classification logits should be passed through a post-hoc Platt Scaling or Temperature Scaling layer fitted on the validation split, accompanied by a Reliability Diagram, Expected Calibration Error (ECE), and Brier Score4.
+
+Once probabilities are calibrated, the application should provide a Clinical Operating Mode Toggle tailored to the asymmetry of field screening errors5. In Standard Balanced Mode (operating at a probability threshold of ), the EfficientNet-B3 classifier replicates the AnemiaVision test benchmark, achieving 96.2% overall accuracy, 0.98 AUC-ROC, 96.0% sensitivity (True Positive rate), a 4.0% False Negative rate, and 95.0% specificity (True Negative rate)7. However, in rural community triage, missing an anemic child or pregnant woman (a False Negative) carries serious clinical risk, whereas a False Positive simply routes the patient for a confirmatory laboratory blood test5. By offering a High-Sensitivity Triage Mode that lowers the decision threshold to —as validated in JetX-GT/nail-anemia-detector—the system achieves 100% recall (zero missed anemic patients) at the expense of lower specificity (17.1%), providing an explicit safety lever for frontline screening5.
+
+Continuous Hemoglobin Agreement via Bland-Altman Analysis
+
+When evaluating continuous hemoglobin predictions ( in ) against laboratory reference measurements (), relying solely on the Pearson correlation coefficient () or  is clinically insufficient because two measurement methods can correlate strongly while exhibiting a persistent systematic offset36. Alongside Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE)12, the evaluation suite (evaluate.py) must generate a Bland-Altman Agreement Plot (also termed Tukey's Mean-Difference Plot, implemented in Python via statsmodels.graphics.agreement.mean_diff_plot)42.
+
+The Bland-Altman diagnostic plots the pairwise measurement average  along the horizontal axis against the pairwise difference  along the vertical axis36. The visualization incorporates three horizontal clinical reference lines: a zero-difference line () denoting zero error, the mean difference line () quantifying systematic bias, and the 95% Limits of Agreement () within which approximately 95% of differences between the smartphone model and the hematology analyzer reside36. Furthermore, regressing the pairwise differences  against the means  verifies the absence of proportional bias, confirming that estimation errors do not widen at severe anemia concentrations36.
+
+Community Health Worker Referral Workflow Design
+
+Because RAHULPATEL2002/anemia-detection already contains a mobile-first web interface, SQLite and PostgreSQL patient record storage (storage_utils.py), and an automated PDF report engine (pdf_report.py), upgrading the application into a WHO-compliant CHW referral workflow requires binding the model's continuous  estimate and calibrated probability  to demographic-specific triage rules4.
+
+Triage Risk Tier & Visual Badge
+
+Demographic & Estimated Hb^\widehat{Hb}Hb (g/dLg/dLg/dL) Criteria
+
+Calibrated Probability (ppp)
+
+Automated CHW Action & Referral Protocol
+
+GREEN: Normal / Routine Care
+
+[cite: 4, 5]
+
+Children (6–59 mos): 20; Adult Women: 7; Adult Men: 7
+
+(High-Sensitivity) or  (Balanced)5
+
+Routine Community Care: Log scan in local SQLite/PostgreSQL history; display automated iron and folate dietary counseling guidance; schedule routine 6-month follow-up screening4.
+
+YELLOW: Mild-to-Moderate Anemia (PHC Referral)
+
+[cite: 5, 7]
+
+Children (6–59 mos): 20; Adult Women: 7; Adult Men: 7
+
+Non-Urgent PHC Lab Referral: Auto-generate a PHC Referral Ticket PDF (AV-XXXXXX) containing patient phone number, clinic site, Grad-CAM overlay, and ; instruct patient to visit the Primary Health Centre within 7 days for confirmatory venous CBC and oral iron supplementation4.
+
+RED: Severe Anemia (Urgent Hospital Referral)
+
+[cite: 7, 23]
+
+Any Demographic Group:  (or approaching WHO transfusion thresholds )23
+
+with severe pallor index
+
+Emergency Clinical Escalation: Trigger a high-priority red alert banner on the CHW screen; generate an Urgent District Hospital Referral PDF for immediate laboratory CBC verification and clinical evaluation4.
+
+24-Hour Hackathon Prioritization Matrix and Execution Strategy
+
+Success in a 24-hour hackathon depends on ruthless scope management: prioritizing features that directly satisfy technical judging criteria while avoiding high-latency engineering traps that cause live stage demos to fail4.
+
+Priority Tier
+
+Feature / Engineering Component
+
+Concrete Implementation Strategy (Hours 1–24)
+
+Strategic Value in Technical Judging
+
+MUST-HAVE (Core Rubric — Non-Negotiable)
+
+1. Base Scaffold & Dual-Input Support
+
+Fork RAHULPATEL2002/anemia-detection immediately4. Retain its Flask backend, mobile rear-camera capture workflow, SQLite persistence, and dark-mode medical UI4.
+
+Saves over 14 hours of full-stack boilerplate and immediately yields a working, mobile-responsive web application4.
+
+MUST-HAVE (Core Rubric — Non-Negotiable)
+
+2. Continuous  () + Joint Classification Head
+
+Modify model.py (EfficientNet-B3) and fuse with JetX-GT's 27 color ratios to output both binary class probability and continuous  () trained on CP-AnemiC (710 patients), Eyes-Defy-Anemia (217 patients), and Ghana Fingernails5.
+
+Directly fulfills the primary prompt mandate to estimate hemoglobin levels and screen for anemia using public datasets with lab-measured hemoglobin12.
+
+MUST-HAVE (Core Rubric — Non-Negotiable)
+
+3. Lighting, Skin-Tone (ITA), and Camera Pipeline
+
+Add normalization.py: Grey-World White Balance  Specular Glare Masking  HSV+CLAHE  CIE LAB Individual Typology Angle () calculation + dimensionless , , and  color ratios5. Display a 3-stage visual preview on the UI (Raw  Normalized  Grad-CAM)4.
+
+Visually demonstrates that the system is not a naive black-box classifier, directly addressing lighting, skin-tone, and camera robustness4.
+
+MUST-HAVE (Core Rubric — Non-Negotiable)
+
+4. Calibrated Metrics & Bland-Altman Dashboard
+
+Add a dedicated evaluation view displaying the Bland-Altman Plot (Bias & 95% LOA), MAE & RMSE in , Calibration Reliability Curve, and Stratified Accuracy by Skin-Tone (ITA) & Dataset (Ghana vs. India vs. Italy)12.
+
+Differentiates a rigorous clinical engineering submission from baseline projects that report only uncalibrated accuracy6.
+
+MUST-HAVE (Core Rubric — Non-Negotiable)
+
+5. WHO-Driven CHW Referral Workflow
+
+Upgrade pdf_report.py and the result screen into a 3-tier Green / Yellow / Red CHW Triage Card incorporating age and sex WHO  cutoffs, a referral status tracker in SQLite, and one-click PDF Referral Slip export4.
+
+Completes the end-to-end clinical workflow for frontline community health workers4.
+
+GOOD-TO-HAVE (High-Impact Polish — Hours 18–22)
+
+1. Dual-Modality Late Fusion (Eye + Nail Combined)
+
+Allow the CHW to optionally capture both a conjunctiva photograph and a fingernail photograph for the same patient, combining their calibrated probabilities and  estimates as validated in BPANet and NeoJaundice-AI12.
+
+Multi-site fusion reduces single-image optical variance and leverages both anatomical modalities simultaneously12.
+
+GOOD-TO-HAVE (High-Impact Polish — Hours 18–22)
+
+2. High-Sensitivity Screening Toggle (0.255 Cutoff)
+
+Add a UI toggle allowing the CHW to switch between Balanced Mode (96% Recall) and 100% Recall Screening Mode (Threshold = 0.255) derived from JetX-GT/nail-anemia-detector5.
+
+Highlights a nuanced understanding of clinical screening sensitivity versus specificity trade-offs5.
+
+GOOD-TO-HAVE (High-Impact Polish — Hours 18–22)
+
+3. Duplicate-Leakage Audit Verification Badge
+
+Execute the duplicate-leakage audit and patient-level split verification from Pai-88/pallor-hb and JetX-GT and display a verification summary on the analytics dashboard1.
+
+Preempts critiques regarding augmented image leakage across train and test splits in public medical datasets1.
+
+GOOD-TO-HAVE (High-Impact Polish — Hours 18–22)
+
+4. Offline Progressive Web App (PWA) Wrapper
+
+Add a lightweight manifest.json and service worker to the Flask static/ folder in RAHULPATEL2002 so the web app installs natively onto a mobile home screen4.
+
+Aligns with rural field realities where community health workers face intermittent connectivity4.
+
+SKIP ENTIRELY (Time Traps — Do Not Touch)
+
+1. Native Android/iOS App Development (Flutter/React Native)
+
+SKIP: Do not build a separate native mobile client from scratch. RAHULPATEL2002/anemia-detection already provides a mobile-first web UI with rear-camera capture preference4.
+
+Building native camera wrappers in 24 hours frequently causes build and CORS failures; a mobile-responsive web application fully satisfies the prompt ("in a web or mobile app")4.
+
+SKIP ENTIRELY (Time Traps — Do Not Touch)
+
+2. Training U-Net / Mask R-CNN Segmentation from Scratch
+
+SKIP: Do not spend hours training heavy semantic segmentation networks (U-Net++ paired with EfficientNet reached only 81.3% accuracy in prior studies10). Use the pre-segmented palpebral masks in CP-AnemiC and Eyes-Defy-Anemia for model training, and rely on an on-screen alignment guide plus thresholding/cropping for live uploads20.
+
+Heavy segmentation models double inference latency and frequently fail on out-of-distribution backgrounds during live demonstrations10.
+
+SKIP ENTIRELY (Time Traps — Do Not Touch)
+
+3. Aggressive Post-Training Quantization (INT4)
+
+SKIP: Do not quantize neural network weights to INT4. Empirical benchmarks on CP-AnemiC prove that INT4 quantization causes catastrophic model collapse, dropping accuracy to 43.13%, precision to 20.00%, and recall to 1.00%32.
+
+Subtle hemoglobin-driven pallor gradients require floating-point (FP32/FP16) or at minimum INT8 precision12.
+
+SKIP ENTIRELY (Time Traps — Do Not Touch)
+
+4. Generative Adversarial Networks (GANs / Diffusion) for Augmentation
+
+SKIP: Although academic studies have experimented with cDCGAN, StyleGAN2-ADA, and Latent Diffusion Models on Eyes-Defy-Anemia14, training generative models during a hackathon consumes excessive GPU time and risks introducing synthetic color distortions.
+
+Standard geometric transforms combined with TrivialAugmentWide and Mixup already achieve 94–97% validation accuracy7.
+
+SKIP ENTIRELY (Time Traps — Do Not Touch)
+
+5. Vercel Serverless Python Deployment for Inference
+
+SKIP: As explicitly documented in RAHULPATEL2002/anemia-detection, Vercel serverless Python functions are size- and request-body limited and cannot host PyTorch alongside trained model checkpoints4. Deploy via Docker on Render, Hugging Face Spaces, or a local GPU server tunneled via ngrok4.
+
+Prevents last-minute deployment crashes caused by serverless memory and slug-size limits4.
+
+Parallel Execution Roadmap
+
+To execute this blueprint efficiently within 24 hours, the engineering team should divide responsibilities across three parallel workstreams immediately after cloning RAHULPATEL2002/anemia-detection4. During the first eight hours, the data and optical normalization workstream should download CP-AnemiC V2 (5.06 MB from Mendeley)26, EYES-DEFY-ANEMIA (from Kaggle)27, and the Ghana Fingernails dataset5, enforce a strict patient-level 70%/10%/20% train/validation/test split audited for duplicate leakage1, and implement normalization.py encompassing Grey-World White Balance, specular glare removal, HSV+CLAHE, and CIE  Individual Typology Angle () calculation12.
+
+Concurrently, between hours 4 and 16, the modeling and calibration workstream should extract the 27 camera-invariant colorimetric ratios (, , , pallor indices)5 and fuse them with the penultimate representation of EfficientNet-B3 inside model.py4. This track will train the dual classification and continuous  () regression heads under the composite loss  using accuracy-first early stopping7, fit post-hoc probability calibration on the validation set, and generate the Bland-Altman plot (statsmodels.graphics.agreement.mean_diff_plot), calibration reliability curve, normalized confusion matrices at both  and  thresholds, and ITA skin-tone subgroup tables5.
+
+Finally, between hours 8 and 24, the clinical application workstream should update the Jinja2 and Vanilla JavaScript frontend (templates/ and static/ in RAHULPATEL2002) to render a three-stage visual pipeline inspection panel showing the raw upload, the glare-corrected and CLAHE-normalized ROI alongside its computed Skin-Tone ITA badge, and the interactive Grad-CAM vascular focus slider4. By wiring the continuous  () estimate and patient demographic inputs into the three-tier WHO referral engine and updating pdf_report.py to export a standardized CHW referral ticket, the team will deliver a cohesive, scientifically rigorous, and field-ready clinical screening system4.
+
+Works cited
+
+anaemia · GitHub Topics, https://github.com/topics/anaemia
+
+Vivisteria11/Anemia-detection-Model - GitHub, https://github.com/Vivisteria11/Anemia-detection-Model
+
+TatianaUshakova/Anemia_detection: Anemia detection using deep, https://github.com/TatianaUshakova/Anemia_detection
+
+AI-powered anemia detection system using deep learning ... - GitHub, https://github.com/RAHULPATEL2002/anemia-detection
+
+JetX-GT/nail-anemia-detector - Hugging Face, https://huggingface.co/JetX-GT/nail-anemia-detector
+
+A Deep Learning Approach For Hemoglobin Estimation From, https://www.ijert.org/research/a-deep-learning-approach-for-hemoglobin-estimation-from-fingernail-images-using-efficientnet-IJERTV15IS041973.pdf
+
+AnemiaVision: Non-Invasive Anemia Detection via ... - arXiv, https://arxiv.org/html/2604.22964v1
+
+aymen-000/AIQuest_DATATHON: This project was ... - GitHub, https://github.com/aymen-000/AIQuest_DATATHON
+
+GitHub - turna1/Computer-Vision, https://github.com/turna1/Computer-Vision
+
+AnemiaVision: Non-Invasive Anemia Detection via Smartphone, https://arxiv.org/pdf/2604.22964
+
+AnemiaVision: Non-Invasive Anemia Detection via Smartphone, https://www.researchgate.net/publication/404248060_AnemiaVision_Non-Invasive_Anemia_Detection_via_Smartphone_Imagery_Using_EfficientNet-B3_with_TrivialAugmentWide_Mixup_Augmentation_and_Persistent_Patient_History_Management
+
+NeoJaundice-AI: Smartphone-Based Neonatal Jaundice Detection, https://arxiv.org/pdf/2606.20689
+
+NeoJaundice-AI: Smartphone-Based Neonatal Jaundice Detection, https://arxiv.org/html/2606.20689v1
+
+Deep Learning Model-Based Detection of Anemia from Conjunctiva, http://www.e-hir.org/journal/view.php?number=1237
+
+Anemia Detection Dataset - Kaggle, https://www.kaggle.com/datasets/shahriar26s/anemia-detection-dataset
+
+A Deep Learning Approach For Hemoglobin Estimation From, https://www.ijert.org/a-deep-learning-approach-for-hemoglobin-estimation-from-fingernail-images-using-efficientnet-ijertv15is041973
+
+1- INTRODUCTION 3- METHODS 4- RESULTS 2 - Vitalism, https://vitalismsolution.github.io/Futurework/Vitalism%20Hemoglobin%20Poster.pdf
+
+(PDF) Detection of anemia using conjunctiva images: A smartphone, https://www.researchgate.net/publication/370587683_Detection_of_anemia_using_conjunctiva_images_A_smartphone_application_approach
+
+Image Processing to Quantitate Hemoglobin Level for Diagnostic, https://helixscientific.pub/index.php/home/article/download/88/90/324
+
+Evaluation on Eyes-Defy & CP-AnemiC - ResearchGate, https://www.researchgate.net/publication/406970002_Conjunctiva_Image_Analysis_for_Anemia_Detection_Evaluation_on_Eyes-Defy_CP-AnemiC
+
+Anemia Detection Using Convolutional Neural Network Based on, https://www.researchgate.net/publication/376286415_Anemia_Detection_Using_Convolutional_Neural_Network_Based_on_Palpebral_Conjunctiva_Images
+
+Enhancing anemia detection through multimodal data fusion, https://d-nb.info/1356758703/34
+
+Prediction of anemia and estimation of hemoglobin concentration, https://pmc.ncbi.nlm.nih.gov/articles/PMC8279386/
+
+Advancing Anemia Detection with Deep Neural Networks - Ovid, https://www.ovid.com/journals/ajoh/pdf/10.1002/ajh.70143~advancing-anemia-detection-with-deep-neural-networks-a
+
+Deep Learning-Based Model for Non-invasive Hemoglobin ... - PMC, https://pmc.ncbi.nlm.nih.gov/articles/PMC11950610/
+
+CP-AnemiC (A Conjunctival Pallor) Dataset from Ghana, https://data.mendeley.com/datasets/m53vz6b7fx/2
+
+EYES-DEFY-ANEMIA - Kaggle, https://www.kaggle.com/datasets/harshwardhanfartale/eyes-defy-anemia/suggestions
+
+Detection of Anemia using Colour of the Fingernails Image Datasets, https://data.mendeley.com/datasets/2xx4j3kjg2/1
+
+(PDF) CP-AnemiC: A conjunctival pallor dataset and benchmark for, https://www.researchgate.net/publication/371260782_CP-AnemiC_A_conjunctival_pallor_dataset_and_benchmark_for_anemia_detection_in_children
+
+Analisis Performa Metode KNN, Yolov8, Dan Yolov11 Pada, https://ejurnal.seminar-id.com/index.php/tin/article/view/8707
+
+Ensemble Deep Feature Fusion for Noninvasive Anemia, https://ieeexplore.ieee.org/document/11200595/
+
+Performance Analysis of Post-Training Quantization for CNN-based, https://arxiv.org/pdf/2507.15151
+
+Conditional Latent Diffusion for Controllable Palpebral Conjunctiva, https://www.mdpi.com/2075-4418/16/17/2715
+
+Non-invasive anemia detection from conjunctiva and sclera images, https://pmc.ncbi.nlm.nih.gov/articles/PMC12717107/
+
+Skin Tone Estimation under Diverse Lighting Conditions - PMC, https://pmc.ncbi.nlm.nih.gov/articles/PMC11122461/
+
+Bland Altman Analysis: Best Practices, FAQs, and Examples - Innolitics, https://innolitics.com/articles/bland-altman-analysis-best-practices-faqs-and-examples/
+
+rodriguezarthur/EquiTone: Rebalance the skin-tone ... - GitHub, https://github.com/rodriguezarthur/EquiTone
+
+GlowMatch AI: Makeup Recommender Final Year Project, https://projects.codeaj.com/projects/glowmatch-ai-makeup-recommendation-system-django-final-year-project/?ref=LLG10
+
+A ​conjunctival pallor dataset and benchmark for anemia detection, https://opus.lib.uts.edu.au/handle/10453/177704
+
+An Explainable AI and Optimized Multi-Branch Convolutional Neural, https://irjaeh.com/index.php/journal/article/view/1965
+
+Bland-Altman Plot Python: Agreement Analysis for Clinical ... - Plotivy, https://plotivy.app/techniques/bland-altman-plot
+
+How to Create a Bland-Altman Plot in Python - Statology, https://www.statology.org/bland-altman-plot-python/
+
+statsmodels.graphics.agreement.mean_diff_plot, https://www.statsmodels.org/devel/generated/statsmodels.graphics.agreement.mean_diff_plot.html

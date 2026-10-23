@@ -1,0 +1,153 @@
+{
+  "audit_metadata": {
+    "timestamp": "2026-10-23T12:57:00Z",
+    "generator": "VYRA Person 2 Leakage Verification Suite",
+    "status": "VERIFIED_ZERO_LEAKAGE"
+  },
+  "dataset_inventory": {
+    "total_images": 5187,
+    "unique_roots": 985,
+    "exact_sha256_duplicates": 2375,
+    "perceptual_dhash_duplicates": 98,
+    "by_dataset": {
+      "cp_anemic_v2": {
+        "total": 710,
+        "unique": 463,
+        "exact_sha256_duplicates": 212,
+        "perceptual_dhash_duplicates": 35
+      },
+      "eyes_defy_anemia": {
+        "total": 217,
+        "unique": 216,
+        "exact_sha256_duplicates": 0,
+        "perceptual_dhash_duplicates": 1
+      },
+      "ghana_fingernails": {
+        "total": 4260,
+        "unique": 2035,
+        "exact_sha256_duplicates": 2163,
+        "perceptual_dhash_duplicates": 62
+      }
+    }
+  },
+  "split_distribution": {
+    "train": {
+      "total_images": 3560,
+      "unique_clusters": 690,
+      "samples_with_lab_hb": 652,
+      "anemic_samples": 2081,
+      "non_anemic_samples": 1479,
+      "by_dataset": {
+        "cp_anemic_v2": {
+          "images": 500,
+          "clusters": 324,
+          "with_lab_hb": 500,
+          "anemic": 288,
+          "non_anemic": 212
+        },
+        "eyes_defy_anemia": {
+          "images": 153,
+          "clusters": 152,
+          "with_lab_hb": 152,
+          "anemic": 64,
+          "non_anemic": 89
+        },
+        "ghana_fingernails": {
+          "images": 2907,
+          "clusters": 214,
+          "with_lab_hb": 0,
+          "anemic": 1729,
+          "non_anemic": 1178
+        }
+      }
+    },
+    "validation": {
+      "total_images": 602,
+      "unique_clusters": 99,
+      "samples_with_lab_hb": 100,
+      "anemic_samples": 347,
+      "non_anemic_samples": 255,
+      "by_dataset": {
+        "cp_anemic_v2": {
+          "images": 79,
+          "clusters": 47,
+          "with_lab_hb": 79,
+          "anemic": 54,
+          "non_anemic": 25
+        },
+        "eyes_defy_anemia": {
+          "images": 21,
+          "clusters": 21,
+          "with_lab_hb": 21,
+          "anemic": 9,
+          "non_anemic": 12
+        },
+        "ghana_fingernails": {
+          "images": 502,
+          "clusters": 31,
+          "with_lab_hb": 0,
+          "anemic": 284,
+          "non_anemic": 218
+        }
+      }
+    },
+    "test": {
+      "total_images": 1025,
+      "unique_clusters": 196,
+      "samples_with_lab_hb": 174,
+      "anemic_samples": 608,
+      "non_anemic_samples": 417,
+      "by_dataset": {
+        "cp_anemic_v2": {
+          "images": 131,
+          "clusters": 92,
+          "with_lab_hb": 131,
+          "anemic": 82,
+          "non_anemic": 49
+        },
+        "eyes_defy_anemia": {
+          "images": 43,
+          "clusters": 43,
+          "with_lab_hb": 43,
+          "anemic": 18,
+          "non_anemic": 25
+        },
+        "ghana_fingernails": {
+          "images": 851,
+          "clusters": 61,
+          "with_lab_hb": 0,
+          "anemic": 508,
+          "non_anemic": 343
+        }
+      }
+    }
+  },
+  "leakage_verification": {
+    "cluster_id_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "sha256_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "dhash_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    },
+    "file_path_overlap": {
+      "train_val": 0,
+      "train_test": 0,
+      "val_test": 0
+    }
+  },
+  "integrity_warnings_and_limitations": [
+    "CP-AnemiC V2 contains no explicit patient ID column; images are clustered via exact SHA256 and perceptual dHash (463 clusters across 710 images).",
+    "Ghana Fingernails contains 4,260 images with 2,163 exact SHA-256 duplicates and 62 dHash duplicates, clustered into 306 patient groups.",
+    "EYES-DEFY-ANEMIA contains 217 images with 1 dHash near-duplicate pair, yielding 216 patient clusters.",
+    "Continuous laboratory Hb is available for conjunctiva cohorts (CP-AnemiC and EYES-DEFY-ANEMIA, total 926 samples); Ghana Fingernails has 0 continuous Hb targets."
+  ]
+}

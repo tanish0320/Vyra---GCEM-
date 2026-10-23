@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found | AnemiaVision AI{% endblock %}
+{% block page_title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="page-wrap section-tight">
+<section class="surface-card fade-in-up text-center">
+    <span class="eyebrow">404 error</span>
+    <h2>The requested page could not be found</h2>
+    <p class="text-secondary">
+        The link may be outdated, or the page may have been moved. You can return to the dashboard
+        or begin a new screening workflow from here.
+    </p>
+    <div class="hero-actions justify-content-center mt-4">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Dashboard</a>
+        <a href="{{ url_for('scan_page') }}" class="btn btn-outline-secondary">Start New Scan</a>
+    </div>
+</section>
+</div>
+{% endblock %}
