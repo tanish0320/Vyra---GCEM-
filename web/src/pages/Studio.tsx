@@ -22,6 +22,7 @@ import {
 import { api, errorMessage } from "../services/api";
 import type { Box, CaseDetails, Modality, Photo } from "../types";
 import { ROIEditor } from "../components/ROIEditor";
+import RefineFrame from "../components/RefineFrame";
 import { AnalysisProgress } from "../components/AnalysisProgress";
 import "../screening.css";
 import "../capture.css";
@@ -541,7 +542,19 @@ export function Studio() {
             >
               {photo ? (
                 <>
-                  <img src={photo.url} alt="Selected screening photo" />
+                  <RefineFrame
+                    status={busy ? "generating" : "complete"}
+                    aspectRatio={`${photo.width} / ${photo.height}`}
+                    width={photo.width > photo.height ? 360 : 280}
+                    radius={12}
+                    labels={{
+                      generating: "Analyzing tissue ROI…",
+                      complete: "Oriented upload ready",
+                      error: "Upload failed",
+                    }}
+                  >
+                    <img src={photo.url} alt="Selected screening photo" />
+                  </RefineFrame>
                   <div>
                     <strong>{photo.name}</strong>
                     <span>
@@ -649,10 +662,22 @@ export function Studio() {
                 >
                   {secondaryPhoto ? (
                     <>
-                      <img
-                        src={secondaryPhoto.url}
-                        alt="Selected fingernail screening photo"
-                      />
+                      <RefineFrame
+                        status={busy ? "generating" : "complete"}
+                        aspectRatio={`${secondaryPhoto.width} / ${secondaryPhoto.height}`}
+                        width={secondaryPhoto.width > secondaryPhoto.height ? 360 : 280}
+                        radius={12}
+                        labels={{
+                          generating: "Analyzing nail bed ROI…",
+                          complete: "Nail upload ready",
+                          error: "Upload failed",
+                        }}
+                      >
+                        <img
+                          src={secondaryPhoto.url}
+                          alt="Selected fingernail screening photo"
+                        />
+                      </RefineFrame>
                       <div>
                         <strong>{secondaryPhoto.name}</strong>
                         <span>
