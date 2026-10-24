@@ -6,6 +6,7 @@ import base64
 import binascii
 import csv
 import io
+import dataclasses
 import json
 import mimetypes
 import os
@@ -1932,6 +1933,32 @@ def run_prediction_workflow(
             print(f"[multimodal] Warning: Secondary scan processing failed: {sec_exc}", flush=True)
 
     quality = adapter_output.quality
+    # If ONLY fingernail screening (not dual scan), reduce output percentage by 20%
+    has_sec = bool(secondary_uploaded_file is not None and getattr(secondary_uploaded_file, "filename", ""))
+    primary_bp = str(patient_payload.get("body_part") or patient_payload.get("image_type") or "conjunctiva").lower()
+    if not has_sec and ("nail" in primary_bp or "fingernail" in primary_bp):
+        orig_p = float(adapter_output.anemic_probability)
+        adj_p = round(max(0.05, min(0.95, orig_p - 0.20)), 4)
+        adj_non_p = round(1.0 - adj_p, 4)
+        is_still_anemic = adj_p >= 0.50
+        adapter_output = dataclasses.replace(
+            adapter_output,
+            anemia_probability=adj_p,
+            anemic_probability=adj_p,
+            non_anemic_probability=adj_non_p,
+            predicted_class="anemic" if is_still_anemic else "non-anemic",
+            prediction="Anemic" if is_still_anemic else "Non-Anemic",
+            confidence=adj_p if is_still_anemic else adj_non_p,
+            confidence_percent=round((adj_p if is_still_anemic else adj_non_p) * 100, 1),
+            risk_level="Elevated" if is_still_anemic else "Low",
+            risk_explanation="Elevated likelihood of microvascular pallor." if is_still_anemic else "Low likelihood of microvascular pallor.",
+            medical_advice=(
+                "Elevated anemia risk detected. Recommend confirmatory complete blood count (CBC)."
+                if is_still_anemic else
+                "Screening indicates healthy microvascular profile. Maintain balanced nutritional intake."
+            ),
+        )
+
     record, persisted = create_scan_record(raw_image_path, adapter_output, patient_payload)
     return record, quality, adapter_output, persisted
 

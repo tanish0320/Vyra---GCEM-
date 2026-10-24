@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import csv
 import io
+import dataclasses
 import json
 import logging
 import uuid
@@ -665,6 +666,35 @@ def confirm_job(job_id: str):
                 patient_payload["notes"] = f"{existing_notes}\n\n{fusion_tag}" if existing_notes else fusion_tag
             except Exception as s_exc:
                 logger.warning("Secondary scan inference failed: %s", s_exc)
+
+    # If ONLY fingernail screening (not dual scan), reduce output percentage by 20%
+    is_dual_check = bool(multimodal_data and multimodal_data.get("active"))
+    modality_val = str(job.get("modality") or patient_payload.get("body_part") or "").lower()
+    if not is_dual_check and ("nail" in modality_val or "fingernail" in modality_val):
+        orig_p = float(adapter_output.anemic_probability)
+        adj_p = round(max(0.05, min(0.95, orig_p - 0.20)), 4)
+        adj_non_p = round(1.0 - adj_p, 4)
+        is_still_anemic = adj_p >= 0.50
+        adj_class = "anemic" if is_still_anemic else "non-anemic"
+        adj_pred = "Anemic" if is_still_anemic else "Non-Anemic"
+        adj_conf = adj_p if is_still_anemic else adj_non_p
+        adapter_output = dataclasses.replace(
+            adapter_output,
+            anemia_probability=adj_p,
+            anemic_probability=adj_p,
+            non_anemic_probability=adj_non_p,
+            predicted_class=adj_class,
+            prediction=adj_pred,
+            confidence=adj_conf,
+            confidence_percent=round(adj_conf * 100, 1),
+            risk_level="Elevated" if is_still_anemic else "Low",
+            risk_explanation="Elevated likelihood of microvascular pallor." if is_still_anemic else "Low likelihood of microvascular pallor.",
+            medical_advice=(
+                "Elevated anemia risk detected. Recommend confirmatory complete blood count (CBC)."
+                if is_still_anemic else
+                "Screening indicates healthy microvascular profile. Maintain balanced nutritional intake."
+            ),
+        )
 
     record, persisted = create_scan_record(cropped_p_path, adapter_output, patient_payload)
 
