@@ -906,5 +906,15 @@ def stress_test():
     if img_bgr is None:
         return jsonify({"error": "Could not decode uploaded image."}), 400
 
-    report = analyze_model_shortcuts(img_bgr, modality=modality)
+    roi_bbox = None
+    raw_roi = request.form.get("roi")
+    if raw_roi:
+        try:
+            roi_data = json.loads(raw_roi) if isinstance(raw_roi, str) else raw_roi
+            if all(k in roi_data for k in ("x0", "y0", "x1", "y1")):
+                roi_bbox = (int(roi_data["x0"]), int(roi_data["y0"]), int(roi_data["x1"]), int(roi_data["y1"]))
+        except Exception:
+            roi_bbox = None
+
+    report = analyze_model_shortcuts(img_bgr, modality=modality, roi_bbox=roi_bbox)
     return jsonify(report), 200

@@ -62,19 +62,31 @@ def _to_base64_thumbnail(img_bgr: np.ndarray, max_dim: int = 160) -> str:
 def analyze_model_shortcuts(
     image_bgr: np.ndarray,
     modality: str = "conjunctiva",
+    roi_bbox: tuple[int, int, int, int] | None = None,
 ) -> dict[str, Any]:
     """Execute a battery of controlled physical & optical perturbations to uncover shortcut learning."""
     h, w = image_bgr.shape[:2]
     canon_modality = "fingernail" if "nail" in str(modality).lower() else "conjunctiva"
 
     # 1. Base ROI extraction
-    roi_res = detect_and_crop_roi(image_bgr, modality=canon_modality)
-    if roi_res.success and roi_res.cropped_image_rgb is not None:
-        roi_rgb = roi_res.cropped_image_rgb
-        roi_bgr = cv2.cvtColor(roi_rgb, cv2.COLOR_RGB2BGR)
+    # detect_and_crop_roi expects an RGB numpy array when passed in-memory ndarray
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    if roi_bbox is not None and len(roi_bbox) == 4:
+        x1, y1, x2, y2 = roi_bbox
+        x1 = max(0, min(int(x1), w - 1))
+        y1 = max(0, min(int(y1), h - 1))
+        x2 = max(x1 + 1, min(int(x2), w))
+        y2 = max(y1 + 1, min(int(y2), h))
+        roi_bgr = image_bgr[y1:y2, x1:x2]
+        roi_rgb = image_rgb[y1:y2, x1:x2]
     else:
-        roi_bgr = cv2.resize(image_bgr, (256, 256))
-        roi_rgb = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2RGB)
+        roi_res = detect_and_crop_roi(image_rgb, modality=canon_modality)
+        if roi_res.success and roi_res.cropped_image_rgb is not None:
+            roi_rgb = roi_res.cropped_image_rgb
+            roi_bgr = cv2.cvtColor(roi_rgb, cv2.COLOR_RGB2BGR)
+        else:
+            roi_bgr = cv2.resize(image_bgr, (256, 256))
+            roi_rgb = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2RGB)
 
     pred_base = predict(roi_rgb, body_part=canon_modality)
     p_base = float(pred_base.get("anemia_probability", 0.5))

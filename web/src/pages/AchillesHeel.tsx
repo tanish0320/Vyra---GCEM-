@@ -169,6 +169,7 @@ export function AchillesHeel() {
     try {
       let source = file;
       let tissue = modality;
+      let scanRoi: { x0: number; y0: number; x1: number; y1: number } | null = null;
       if (savedId) {
         const scan = await api.scan(savedId, controller.signal);
         if (scan.modality !== "conjunctiva" && scan.modality !== "fingernail")
@@ -191,6 +192,7 @@ export function AchillesHeel() {
         const blob = await response.blob();
         source = new File([blob], `screening-${scan.id}`, { type: blob.type });
         tissue = scan.modality;
+        scanRoi = scan.roi || null;
         if (mounted.current && !controller.signal.aborted) setModality(tissue);
       }
       if (!source)
@@ -207,7 +209,7 @@ export function AchillesHeel() {
       if (controller.signal.aborted)
         throw new DOMException("Aborted", "AbortError");
       const value = validateReport(
-        await api.stressTest(source, tissue, controller.signal),
+        await api.stressTest(source, tissue, controller.signal, scanRoi),
       );
       if (mounted.current && !controller.signal.aborted) setReport(value);
     } catch (caught) {

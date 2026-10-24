@@ -2515,7 +2515,8 @@ def create_app() -> Flask:
         if img_bgr is None:
             img_bgr = np.ones((300, 300, 3), dtype=np.uint8) * 128
 
-        report = analyze_model_shortcuts(img_bgr, modality=modality)
+        roi_bbox = parse_roi_bbox(request.form.get("roi") or request.form.get("roi_bbox"))
+        report = analyze_model_shortcuts(img_bgr, modality=modality, roi_bbox=roi_bbox)
         return render_template(
             "achilles_heel.html",
             report=report,

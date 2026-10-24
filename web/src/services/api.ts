@@ -135,10 +135,18 @@ export const api = {
     }
     return value;
   },
-  stressTest: (image: File, modality: Modality, signal?: AbortSignal) => {
+  stressTest: (
+    image: File,
+    modality: Modality,
+    signal?: AbortSignal,
+    roi?: { x0: number; y0: number; x1: number; y1: number } | null,
+  ) => {
     const body = new FormData();
     body.set("image", image);
     body.set("modality", modality);
+    if (roi) {
+      body.set("roi", JSON.stringify(roi));
+    }
     return request<StressReport>("/achilles-heel", {
       method: "POST",
       body,
