@@ -2522,37 +2522,15 @@ def create_app() -> Flask:
             active_case=case,
         )
 
-    @app.route("/api/v1/achilles-heel", methods=["POST"])
-    def api_achilles_heel():
-        """API endpoint returning structured shortcut vulnerability report."""
-        import cv2
-        import numpy as np
-        from achilles_heel import analyze_model_shortcuts
+    # Register isolated /api/v1 compatibility blueprint for React frontend
+    from api_v1 import api_v1_bp
+    app.register_blueprint(api_v1_bp)
 
-        if "image" not in request.files:
-            return jsonify({"error": "Missing 'image' file in multipart upload."}), 400
-        file = request.files["image"]
-        modality = request.form.get("modality", "conjunctiva")
-        file_bytes = np.frombuffer(file.read(), np.uint8)
-        img_bgr = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        if img_bgr is None:
-            return jsonify({"error": "Could not decode uploaded image."}), 400
-
-        report = analyze_model_shortcuts(img_bgr, modality=modality)
-        return jsonify(report)
-
-    @app.route("/api/v1/explain/<int:scan_id>", methods=["POST"])
-    def api_explain_scan(scan_id: int):
-        """Explainable AI endpoint powered by Qwen 2.5 with MediAssist clinical guardrails."""
-        from explainable_ai import explain_scan_findings
-
-        record = scans_active_query().filter_by(id=scan_id).first_or_404()
-        payload = request.get_json(silent=True) or {}
-        question = payload.get("question", "").strip() or "What does my image specifically show?"
-        language = payload.get("language", "en").strip()
-
-        result = explain_scan_findings(record, question=question, language=language)
-        return jsonify(result)
+    @app.route("/ui")
+    @app.route("/ui/")
+    def ui_entrypoint():
+        """Redirect to the modern React screening application."""
+        return redirect("/static/ui/index.html")
 
     return app
 

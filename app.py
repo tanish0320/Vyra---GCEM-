@@ -21,24 +21,14 @@ for _p in (str(_PERSON3_DIR), str(_REPO_ROOT)):
 
 # Import the canonical application from person3_app
 import person3_app.app as _p3_app  # noqa: E402
-from person3_app.app import (  # noqa: E402
-    app,
-    create_app,
-    db,
-    RateLimitEvent,
-    Scan,
-    MediaFile,
-    IMAGE_TYPE_OPTIONS,
-    GENDER_OPTIONS,
-    HISTORY_PAGE_SIZE,
-    DISCLAIMER_TEXT,
-    run_prediction_workflow,
-    validate_patient_payload,
-)
+from person3_app.app import *  # noqa: F401, F403, E402
 
 # Aliases for legacy compatibility
-ScanRecord = Scan
+ScanRecord = getattr(_p3_app, "Scan", None)
 DEFAULT_CLINICAL_ACCURACY = 92.4
+
+# Ensure app module refers directly to canonical person3_app.app
+sys.modules[__name__] = _p3_app
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
