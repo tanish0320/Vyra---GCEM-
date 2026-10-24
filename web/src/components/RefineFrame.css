@@ -263,3 +263,30 @@
     transform: translate(-50%, -50%);
   }
 }
+
+.refine-frame--interactive {
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.refine-frame--interactive:hover {
+  transform: scale(1.008);
+  box-shadow: 0 8px 24px -8px rgba(0, 108, 103, 0.35);
+}
+
+.refine-frame--interactive:active {
+  transform: scale(0.99);
+}
+
+.preview-refine-modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 12px 0 6px;
+}
+
+.preview-refine-modal .refine-frame {
+  max-width: 100%;
+}

@@ -107,7 +107,23 @@ export function Studio() {
     [primaryRefineStatus, setPrimaryRefineStatus] =
       useState<RefineFrameStatus>("complete"),
     [secondaryRefineStatus, setSecondaryRefineStatus] =
-      useState<RefineFrameStatus>("complete");
+      useState<RefineFrameStatus>("complete"),
+    [primaryRefineKey, setPrimaryRefineKey] = useState(0),
+    [secondaryRefineKey, setSecondaryRefineKey] = useState(0);
+
+  const restartIntakeRefine = (secondary = false) => {
+    if (!secondary) {
+      setPrimaryRefineKey((k) => k + 1);
+      setPrimaryRefineStatus("generating");
+      setTimeout(() => setPrimaryRefineStatus("refining"), 380);
+      setTimeout(() => setPrimaryRefineStatus("complete"), 800);
+    } else {
+      setSecondaryRefineKey((k) => k + 1);
+      setSecondaryRefineStatus("generating");
+      setTimeout(() => setSecondaryRefineStatus("refining"), 380);
+      setTimeout(() => setSecondaryRefineStatus("complete"), 800);
+    }
+  };
   const input = useRef<HTMLInputElement>(null),
     secondaryInput = useRef<HTMLInputElement>(null),
     sequence = useRef(0),
@@ -555,25 +571,46 @@ export function Studio() {
             >
               {photo ? (
                 <>
-                  <RefineFrame
-                    status={busy ? "generating" : primaryRefineStatus}
-                    aspectRatio={`${photo.width} / ${photo.height}`}
-                    width={photo.width > photo.height ? 360 : 280}
-                    radius={12}
-                    stageDuration={380}
-                    sweep={true}
-                    showStatus={true}
-                    hideAfter={2500}
-                    labels={{
-                      queued: "Awaiting preprocessing",
-                      generating: "Analyzing tissue ROI…",
-                      refining: "Calibrating resolution…",
-                      complete: "Oriented upload ready",
-                      error: "Upload failed",
+                  <div
+                    className="refine-frame-trigger cursor-target"
+                    data-cursor-label="Click to Refine Image"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      restartIntakeRefine(false);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        restartIntakeRefine(false);
+                      }
                     }}
                   >
-                    <img src={photo.url} alt="Selected screening photo" />
-                  </RefineFrame>
+                    <RefineFrame
+                      key={`${photo.url}-${primaryRefineKey}`}
+                      status={busy ? "generating" : primaryRefineStatus}
+                      autoAnimateOnMount={true}
+                      interactive={true}
+                      onClick={() => restartIntakeRefine(false)}
+                      aspectRatio={`${photo.width} / ${photo.height}`}
+                      width={photo.width > photo.height ? 360 : 280}
+                      radius={12}
+                      stageDuration={380}
+                      sweep={true}
+                      showStatus={true}
+                      hideAfter={2500}
+                      labels={{
+                        queued: "Awaiting preprocessing",
+                        generating: "Analyzing tissue ROI…",
+                        refining: "Calibrating resolution…",
+                        complete: "Oriented upload ready · click to replay",
+                        error: "Upload failed",
+                      }}
+                    >
+                      <img src={photo.url} alt="Selected screening photo" />
+                    </RefineFrame>
+                  </div>
                   <div>
                     <strong>{photo.name}</strong>
                     <span>
@@ -681,28 +718,49 @@ export function Studio() {
                 >
                   {secondaryPhoto ? (
                     <>
-                      <RefineFrame
-                        status={busy ? "generating" : secondaryRefineStatus}
-                        aspectRatio={`${secondaryPhoto.width} / ${secondaryPhoto.height}`}
-                        width={secondaryPhoto.width > secondaryPhoto.height ? 360 : 280}
-                        radius={12}
-                        stageDuration={380}
-                        sweep={true}
-                        showStatus={true}
-                        hideAfter={2500}
-                        labels={{
-                          queued: "Awaiting preprocessing",
-                          generating: "Analyzing nail bed ROI…",
-                          refining: "Calibrating resolution…",
-                          complete: "Nail upload ready",
-                          error: "Upload failed",
+                      <div
+                        className="refine-frame-trigger cursor-target"
+                        data-cursor-label="Click to Refine Image"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          restartIntakeRefine(true);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            restartIntakeRefine(true);
+                          }
                         }}
                       >
-                        <img
-                          src={secondaryPhoto.url}
-                          alt="Selected fingernail screening photo"
-                        />
-                      </RefineFrame>
+                        <RefineFrame
+                          key={`${secondaryPhoto.url}-${secondaryRefineKey}`}
+                          status={busy ? "generating" : secondaryRefineStatus}
+                          autoAnimateOnMount={true}
+                          interactive={true}
+                          onClick={() => restartIntakeRefine(true)}
+                          aspectRatio={`${secondaryPhoto.width} / ${secondaryPhoto.height}`}
+                          width={secondaryPhoto.width > secondaryPhoto.height ? 360 : 280}
+                          radius={12}
+                          stageDuration={380}
+                          sweep={true}
+                          showStatus={true}
+                          hideAfter={2500}
+                          labels={{
+                            queued: "Awaiting preprocessing",
+                            generating: "Analyzing nail bed ROI…",
+                            refining: "Calibrating resolution…",
+                            complete: "Nail upload ready · click to replay",
+                            error: "Upload failed",
+                          }}
+                        >
+                          <img
+                            src={secondaryPhoto.url}
+                            alt="Selected fingernail screening photo"
+                          />
+                        </RefineFrame>
+                      </div>
                       <div>
                         <strong>{secondaryPhoto.name}</strong>
                         <span>

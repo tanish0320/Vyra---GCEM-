@@ -869,3 +869,17 @@
   max-height: 260px;
   margin: 0 auto;
 }
+
+.refine-frame-trigger {
+  display: inline-block;
+  cursor: pointer;
+  border-radius: 14px;
+  transition: transform 0.15s ease;
+}
+.refine-frame-trigger:hover {
+  transform: scale(1.01);
+}
+.refine-frame-trigger:focus-visible {
+  outline: 2px solid #026e6d;
+  outline-offset: 3px;
+}

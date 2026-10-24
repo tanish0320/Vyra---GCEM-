@@ -27,6 +27,9 @@ export interface RefineFrameProps {
   labels?: Partial<Record<RefineFrameStatus, string>>;
   retryLabel?: string;
   onRetry?: () => void;
+  onClick?: () => void;
+  interactive?: boolean;
+  autoAnimateOnMount?: boolean;
   className?: string;
 }
 
@@ -107,35 +110,39 @@ const build = (s: SimState, canvas: HTMLCanvasElement, img: HTMLImageElement, dp
   }
   s.glint = glint;
   s.levels = LEVELS.map((block) => {
-    const b = block === 1 ? 1 : Math.max(2, Math.round(block * dpr));
-    const full = document.createElement('canvas');
-    full.width = W;
-    full.height = H;
-    const fc = full.getContext('2d');
-    if (!fc) return full;
-    if (b === 1) {
-      fc.imageSmoothingEnabled = true;
-      fc.imageSmoothingQuality = 'high';
-      fc.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+    try {
+      const b = block === 1 ? 1 : Math.max(2, Math.round(block * dpr));
+      const full = document.createElement('canvas');
+      full.width = W;
+      full.height = H;
+      const fc = full.getContext('2d');
+      if (!fc) return full;
+      if (b === 1) {
+        fc.imageSmoothingEnabled = true;
+        fc.imageSmoothingQuality = 'high';
+        fc.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+        return full;
+      }
+      const small = document.createElement('canvas');
+      small.width = Math.max(1, Math.round(W / b));
+      small.height = Math.max(1, Math.round(H / b));
+      const sc = small.getContext('2d');
+      if (sc) {
+        sc.imageSmoothingEnabled = true;
+        sc.imageSmoothingQuality = 'high';
+        sc.drawImage(img, sx, sy, sw, sh, 0, 0, small.width, small.height);
+      }
+      fc.imageSmoothingEnabled = false;
+      fc.drawImage(small, 0, 0, W, H);
       return full;
+    } catch {
+      return document.createElement('canvas');
     }
-    const small = document.createElement('canvas');
-    small.width = Math.max(1, Math.round(W / b));
-    small.height = Math.max(1, Math.round(H / b));
-    const sc = small.getContext('2d');
-    if (sc) {
-      sc.imageSmoothingEnabled = true;
-      sc.imageSmoothingQuality = 'high';
-      sc.drawImage(img, sx, sy, sw, sh, 0, 0, small.width, small.height);
-    }
-    fc.imageSmoothingEnabled = false;
-    fc.drawImage(small, 0, 0, W, H);
-    return full;
   });
 };
 
 export default function RefineFrame({
-  status = 'generating',
+  status: propStatus = 'generating',
   children,
   aspectRatio = '4 / 3',
   width = 320,
@@ -149,8 +156,13 @@ export default function RefineFrame({
   labels = DEFAULT_LABELS,
   retryLabel = 'Retry',
   onRetry,
+  onClick,
+  interactive = true,
+  autoAnimateOnMount = true,
   className = '',
 }: RefineFrameProps) {
+  const [internalStatus, setInternalStatus] = useState<RefineFrameStatus>(propStatus);
+  const status = internalStatus;
   const stage = STAGES[status] ?? STAGES.generating;
   const active = ACTIVE.has(status);
   const text = { ...DEFAULT_LABELS, ...labels };
@@ -174,6 +186,10 @@ export default function RefineFrame({
 
   const [chip, setChip] = useState(showStatus);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    setInternalStatus(propStatus);
+  }, [propStatus]);
 
   useEffect(() => {
     clearTimeout(timer.current);
@@ -256,6 +272,24 @@ export default function RefineFrame({
     if (!s.raf) s.raf = requestAnimationFrame(tick);
   };
 
+  const replay = () => {
+    const s = sim.current;
+    s.p = 0;
+    s.sent = false;
+    s.last = 0;
+    setResolved(false);
+    setMosaic(true);
+    setInternalStatus('generating');
+    setTimeout(() => {
+      setInternalStatus('refining');
+    }, stageDuration);
+    setTimeout(() => {
+      setInternalStatus('complete');
+    }, stageDuration * 2);
+    wake();
+    onClick?.();
+  };
+
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => {
@@ -276,6 +310,19 @@ export default function RefineFrame({
     const start = () => {
       if (gone) return;
       setMosaic(true);
+      if (autoAnimateOnMount) {
+        sim.current.p = 0;
+        sim.current.sent = false;
+        sim.current.last = 0;
+        setResolved(false);
+        setInternalStatus('generating');
+        setTimeout(() => {
+          if (!gone) setInternalStatus('refining');
+        }, stageDuration);
+        setTimeout(() => {
+          if (!gone) setInternalStatus(propStatus || 'complete');
+        }, stageDuration * 2);
+      }
       wake();
     };
     if (img.complete && img.naturalWidth) start();
@@ -284,7 +331,7 @@ export default function RefineFrame({
       gone = true;
       img.removeEventListener('load', start);
     };
-  }, [children, status]);
+  }, [children, autoAnimateOnMount]);
 
   useEffect(() => {
     wake();
@@ -310,7 +357,7 @@ export default function RefineFrame({
 
   return (
     <div
-      className={`refine-frame${className ? ` ${className}` : ''}`}
+      className={`refine-frame${interactive ? ' refine-frame--interactive' : ''}${className ? ` ${className}` : ''}`}
       role="img"
       aria-label={text[status] ?? status}
       aria-busy={active || undefined}
@@ -319,6 +366,8 @@ export default function RefineFrame({
       data-sweep={sweep && active ? '' : undefined}
       data-mosaic={mosaic ? '' : undefined}
       data-resolved={mosaic && resolved ? '' : undefined}
+      data-interactive={interactive ? 'true' : undefined}
+      onClick={interactive ? replay : onClick}
       style={rootStyle}
     >
       <div className="refine-frame__media" aria-hidden="true">
@@ -345,7 +394,14 @@ export default function RefineFrame({
         </div>
       ) : null}
       {status === 'error' && onRetry ? (
-        <button type="button" className="refine-frame__retry" onClick={onRetry}>
+        <button
+          type="button"
+          className="refine-frame__retry"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRetry();
+          }}
+        >
           <RotateCcw size={14} strokeWidth={2.2} />
           <span>{retryLabel}</span>
         </button>
