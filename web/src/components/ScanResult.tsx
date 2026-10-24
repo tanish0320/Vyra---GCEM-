@@ -16,7 +16,6 @@ import { useSession } from "../context";
 import { Button } from "./ui/button";
 import { AssistantCard } from "./AssistantCard";
 import FlipCard from "./FlipCard";
-import RefineFrame from "./RefineFrame";
 import { ColorimetryResults, FusionResults } from "./IntegrationResults";
 import {
   Dialog,
@@ -138,26 +137,14 @@ export function ScanResult({ scan }: { scan: Scan }) {
     <figure key={name} className={"result-image" + (main ? " main-image" : "")}>
       <button
         className="artifact-open cursor-target"
-        data-cursor-label={"Inspect " + name}
+        data-cursor-label={"Enlarge " + name}
         aria-label={"Enlarge " + name}
         onClick={(event) => {
           previewTrigger.current = event.currentTarget;
           setPreview({ name, url });
         }}
       >
-        <RefineFrame
-          key={url}
-          status="complete"
-          autoAnimateOnMount={false}
-          interactive={false}
-          aspectRatio={main ? "4 / 3" : "1 / 1"}
-          width={main ? 420 : 180}
-          radius={8}
-          sweep={true}
-          showStatus={false}
-        >
-          <img src={url} alt={name} loading="lazy" />
-        </RefineFrame>
+        <img src={url} alt={name} loading="lazy" />
       </button>
       <figcaption>{name}</figcaption>
     </figure>
@@ -622,32 +609,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
             </DialogDescription>
           </DialogHeader>
           {preview && (
-            <div className="preview-refine-modal">
-              <RefineFrame
-                key={preview.url}
-                status="generating"
-                autoAnimateOnMount={true}
-                interactive={true}
-                aspectRatio="4 / 3"
-                width={640}
-                radius={12}
-                stageDuration={360}
-                sweep={true}
-                showStatus={true}
-                hideAfter={2500}
-                labels={{
-                  generating: "Refining tissue detail…",
-                  refining: "Synthesizing microvascular resolution…",
-                  complete: `${preview.name} refined · click to replay`,
-                }}
-              >
-                <img
-                  src={preview.url}
-                  alt={`${preview.name}, enlarged`}
-                  crossOrigin="anonymous"
-                />
-              </RefineFrame>
-            </div>
+            <img src={preview.url} alt={`${preview.name}, enlarged`} />
           )}
         </DialogContent>
       </Dialog>
