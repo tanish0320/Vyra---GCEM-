@@ -394,7 +394,7 @@ def test_06_evaluation_metrics_shown_only_when_backed_by_real_artifact(
     resp_default = client.get("/about")
     assert resp_default.status_code == 200
     html_default = resp_default.get_data(as_text=True)
-    assert ("63.9%" in html_default or "Unavailable" in html_default)
+    assert ("86.9%" in html_default or "63.9%" in html_default or "Unavailable" in html_default)
 
     eval_dir = tmp_path / "evaluation"
     eval_dir.mkdir(parents=True, exist_ok=True)

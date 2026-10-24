@@ -67,7 +67,8 @@ def test_grounding_bundle_extraction():
     assert bundle["hb_estimate_g_dl"] == 9.8
 
 
-def test_deterministic_explainer_findings():
+def test_deterministic_explainer_findings(monkeypatch):
+    monkeypatch.setattr("explainable_ai.QwenLLMClient.is_available", lambda self: False)
     scan = MockScan()
     res = explain_scan_findings(scan, "What does my image specifically show?", language="en")
     assert res["is_emergency"] is False
@@ -76,7 +77,8 @@ def test_deterministic_explainer_findings():
     assert "Clinical Disclaimer" in res["response"]
 
 
-def test_deterministic_explainer_causes():
+def test_deterministic_explainer_causes(monkeypatch):
+    monkeypatch.setattr("explainable_ai.QwenLLMClient.is_available", lambda self: False)
     scan = MockScan()
     res = explain_scan_findings(scan, "Why does anemia happen?", language="en")
     assert res["is_emergency"] is False
@@ -84,7 +86,8 @@ def test_deterministic_explainer_causes():
     assert "Clinical Disclaimer" in res["response"]
 
 
-def test_deterministic_explainer_hindi():
+def test_deterministic_explainer_hindi(monkeypatch):
+    monkeypatch.setattr("explainable_ai.QwenLLMClient.is_available", lambda self: False)
     scan = MockScan()
     res = explain_scan_findings(scan, "मुझे क्या लक्षण देखने चाहिए?", language="hi")
     assert res["is_emergency"] is False

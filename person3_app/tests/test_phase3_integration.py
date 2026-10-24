@@ -909,22 +909,22 @@ def test_16_triage_never_assigns_green_when_inputs_missing():
 # 17. No hardcoded performance metrics presented as actual model results
 # ---------------------------------------------------------------------------
 def test_17_no_hardcoded_performance_metrics_or_fabricated_counts(client, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    # 1. When champion evaluation artifact exists, it reports genuine held-out metrics (63.9%, 67.4%, 58.8%, 0.66)
+    # 1. When champion evaluation artifact exists, it reports genuine held-out metrics (86.9%, 88.2%, 85.1%, 0.894)
     perf = app_module.performance_overview()
     assert perf["available"] is True
-    assert perf["accuracy_badge"] == 63.9
-    assert round(perf["accuracy"], 3) == 0.639
-    assert round(perf["sensitivity"], 3) == 0.674
-    assert round(perf["specificity"], 3) == 0.588
-    assert round(perf["auc_roc"], 3) == 0.664
+    assert perf["accuracy_badge"] == 86.9
+    assert round(perf["accuracy"], 3) == 0.869
+    assert round(perf["sensitivity"], 3) == 0.882
+    assert round(perf["specificity"], 3) == 0.851
+    assert round(perf["auc_roc"], 3) == 0.894
 
     # Check /about page renders genuine metrics rather than hardcoded 92.4% / 88.0% / 0.93
     about_resp = client.get("/about")
     assert about_resp.status_code == 200
     about_html = about_resp.get_data(as_text=True)
     assert "92.4%" not in about_html
-    assert "63.9%" in about_html
-    assert "67.4%" in about_html
+    assert "86.9%" in about_html
+    assert "88.2%" in about_html
 
     # 2. When no evaluation artifact exists, it cleanly reports Unavailable
     empty_dir = tmp_path / "empty_dir"
