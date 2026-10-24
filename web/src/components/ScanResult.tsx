@@ -401,11 +401,11 @@ export function ScanResult({ scan }: { scan: Scan }) {
                     front={
                       <div className="flip-card-face-content">
                         <img
-                          src={currentNormalized}
-                          alt={`Normalized ${attentionSite === "primary" ? primaryModalityName : secondaryModalityName} crop`}
+                          src={currentArtifacts.roi || currentNormalized}
+                          alt={`Original ${attentionSite === "primary" ? primaryModalityName : secondaryModalityName} tissue crop`}
                         />
                         <div className="flip-face-badge">
-                          <span>Normalized Input</span>
+                          <span>Original View</span>
                           <span className="badge-sub">{attentionSite === "primary" ? primaryModalityName : secondaryModalityName}</span>
                         </div>
                       </div>
@@ -413,12 +413,12 @@ export function ScanResult({ scan }: { scan: Scan }) {
                     back={
                       <div className="flip-card-face-content">
                         <img
-                          src={currentAttentionUrl}
-                          alt={`Grad-CAM attention map for ${attentionSite === "primary" ? primaryModalityName : secondaryModalityName}`}
+                          src={currentArtifacts.gradcam || currentAttentionUrl}
+                          alt={`Microvascular Grad-CAM view for ${attentionSite === "primary" ? primaryModalityName : secondaryModalityName}`}
                         />
                         <div className="flip-face-badge badge-accent">
-                          <span>Grad-CAM Attention</span>
-                          <span className="badge-sub">{rawHeatmap ? "Raw Heatmap" : "Microvascular Saliency"}</span>
+                          <span>Microvascular View</span>
+                          <span className="badge-sub">Grad-CAM Saliency</span>
                         </div>
                       </div>
                     }

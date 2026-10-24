@@ -10,7 +10,8 @@ import {
 import type { Job, StageName } from "../types";
 import { STAGES } from "./LivePipeline";
 import { Button } from "./ui/button";
-import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
+import RefineFrame, { type RefineFrameStatus } from "./RefineFrame";
 
 const GROUPS: { title: string; stages: StageName[]; detail: string }[] = [
   {
@@ -32,16 +33,37 @@ const GROUPS: { title: string; stages: StageName[]; detail: string }[] = [
 const terminal = new Set(["completed", "failed", "cancelled", "interrupted"]);
 const done = (status?: string) =>
   status === "completed" || status === "complete" || status === "skipped";
+
+const getRefineStatus = (
+  status: Job["status"],
+  stage: Job["stage"],
+): RefineFrameStatus => {
+  if (status === "failed" || status === "cancelled" || status === "interrupted")
+    return "error";
+  if (status === "completed") return "complete";
+  if (stage === "validation" || stage === "detection" || stage === "roi")
+    return "queued";
+  if (stage === "normalization" || stage === "features") return "generating";
+  if (stage === "inference" || stage === "explanation" || stage === "saving")
+    return "refining";
+  return "generating";
+};
 export function AnalysisProgress({
   job,
   busy,
   onCancel,
   onRestart,
+  previewUrl,
+  previewWidth,
+  previewHeight,
 }: {
   job: Job;
   busy: boolean;
   onCancel: () => void;
   onRestart: () => void;
+  previewUrl?: string;
+  previewWidth?: number;
+  previewHeight?: number;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -90,6 +112,35 @@ export function AnalysisProgress({
               : job.patient.age + " years"}{" "}
             · {job.modality === "conjunctiva" ? "Lower eyelid" : "Fingernail"}
           </span>
+        </div>
+      )}
+      {(job.image?.url || previewUrl) && (
+        <div className="analysis-refine-container">
+          <RefineFrame
+            status={getRefineStatus(job.status, job.stage)}
+            aspectRatio={`${job.image?.width || previewWidth || 4} / ${job.image?.height || previewHeight || 3}`}
+            width={340}
+            radius={14}
+            background="#0d1b1a"
+            color="#026e6d"
+            stageDuration={420}
+            sweep={true}
+            showStatus={true}
+            hideAfter={0}
+            labels={{
+              queued: "Awaiting preprocessing",
+              generating: "Extracting colorimetry & features",
+              refining: "Synthesizing microvascular attention",
+              complete: "Inference finalized",
+              error: "Inference interrupted",
+            }}
+          >
+            <img
+              src={job.image?.url || previewUrl}
+              alt="Tissue scan processing frame"
+              crossOrigin="anonymous"
+            />
+          </RefineFrame>
         </div>
       )}
       <ol className="analysis-stages">

@@ -22,7 +22,7 @@ import {
 import { api, errorMessage } from "../services/api";
 import type { Box, CaseDetails, Modality, Photo } from "../types";
 import { ROIEditor } from "../components/ROIEditor";
-import RefineFrame from "../components/RefineFrame";
+import RefineFrame, { type RefineFrameStatus } from "../components/RefineFrame";
 import { AnalysisProgress } from "../components/AnalysisProgress";
 import "../screening.css";
 import "../capture.css";
@@ -103,7 +103,11 @@ export function Studio() {
     [secondaryDragging, setSecondaryDragging] = useState(false),
     [secondaryRoi, setSecondaryRoi] = useState<Box | null>(null),
     [primaryReviewed, setPrimaryReviewed] = useState(false),
-    [secondaryReviewed, setSecondaryReviewed] = useState(false);
+    [secondaryReviewed, setSecondaryReviewed] = useState(false),
+    [primaryRefineStatus, setPrimaryRefineStatus] =
+      useState<RefineFrameStatus>("complete"),
+    [secondaryRefineStatus, setSecondaryRefineStatus] =
+      useState<RefineFrameStatus>("complete");
   const input = useRef<HTMLInputElement>(null),
     secondaryInput = useRef<HTMLInputElement>(null),
     sequence = useRef(0),
@@ -198,6 +202,15 @@ export function Studio() {
         width: image.naturalWidth,
         height: image.naturalHeight,
       });
+      if (!secondary) {
+        setPrimaryRefineStatus("generating");
+        setTimeout(() => setPrimaryRefineStatus("refining"), 400);
+        setTimeout(() => setPrimaryRefineStatus("complete"), 800);
+      } else {
+        setSecondaryRefineStatus("generating");
+        setTimeout(() => setSecondaryRefineStatus("refining"), 400);
+        setTimeout(() => setSecondaryRefineStatus("complete"), 800);
+      }
     } catch (e) {
       URL.revokeObjectURL(url);
       if (ticket === requestSequence.current) {
@@ -543,12 +556,18 @@ export function Studio() {
               {photo ? (
                 <>
                   <RefineFrame
-                    status={busy ? "generating" : "complete"}
+                    status={busy ? "generating" : primaryRefineStatus}
                     aspectRatio={`${photo.width} / ${photo.height}`}
                     width={photo.width > photo.height ? 360 : 280}
                     radius={12}
+                    stageDuration={380}
+                    sweep={true}
+                    showStatus={true}
+                    hideAfter={2500}
                     labels={{
+                      queued: "Awaiting preprocessing",
                       generating: "Analyzing tissue ROI…",
+                      refining: "Calibrating resolution…",
                       complete: "Oriented upload ready",
                       error: "Upload failed",
                     }}
@@ -663,12 +682,18 @@ export function Studio() {
                   {secondaryPhoto ? (
                     <>
                       <RefineFrame
-                        status={busy ? "generating" : "complete"}
+                        status={busy ? "generating" : secondaryRefineStatus}
                         aspectRatio={`${secondaryPhoto.width} / ${secondaryPhoto.height}`}
                         width={secondaryPhoto.width > secondaryPhoto.height ? 360 : 280}
                         radius={12}
+                        stageDuration={380}
+                        sweep={true}
+                        showStatus={true}
+                        hideAfter={2500}
                         labels={{
+                          queued: "Awaiting preprocessing",
                           generating: "Analyzing nail bed ROI…",
+                          refining: "Calibrating resolution…",
                           complete: "Nail upload ready",
                           error: "Upload failed",
                         }}
@@ -1156,6 +1181,9 @@ export function Studio() {
           busy={busy}
           onCancel={() => void cancel()}
           onRestart={fresh}
+          previewUrl={photo?.url}
+          previewWidth={photo?.width}
+          previewHeight={photo?.height}
         />
       )}
     </div>

@@ -41,6 +41,7 @@ function App() {
   return (
     <>
       <TargetCursor
+        targetSelector="button, a, input, select, textarea, [role='button'], .cursor-target, [data-cursor-label]"
         cursorColor="#026e6d"
         cursorColorOnTarget="#026e6d"
         spinDuration={2}

@@ -50,7 +50,7 @@ export interface TargetCursorProps {
 }
 
 export const TargetCursor: React.FC<TargetCursorProps> = ({
-  targetSelector = '.cursor-target',
+  targetSelector = "button, a, input, select, textarea, [role='button'], .cursor-target, [data-cursor-label]",
   cursorColor = '#026e6d',
   cursorColorOnTarget,
   spinDuration = 2,
@@ -150,10 +150,14 @@ export const TargetCursor: React.FC<TargetCursorProps> = ({
 
     const findTarget = (x: number, y: number, element?: Element | null): HTMLElement | null => {
       const s = settingsRef.current;
-      const node = element || document.elementFromPoint(x, y);
+      const node = (element instanceof Element ? element : null) || document.elementFromPoint(x, y);
       const found = (node?.closest?.(s.targetSelector) as HTMLElement | null) || null;
+      if (!found) return null;
+      if ((found as HTMLButtonElement).disabled || found.getAttribute('aria-disabled') === 'true') return null;
       const scope = scopeOf();
-      if (found && scope && !scope.contains(found)) return null;
+      if (scope && !scope.contains(found)) return null;
+      const rect = found.getBoundingClientRect();
+      if (rect.width > 600 || rect.height > 500) return null;
       return found;
     };
 

@@ -1,8 +1,12 @@
+.target-cursor,
+.target-cursor * {
+  pointer-events: none !important;
+}
+
 .target-cursor {
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  pointer-events: none;
 }
 
 .target-cursor__corner {
