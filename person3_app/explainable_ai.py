@@ -121,7 +121,7 @@ class QwenLLMClient:
             parsed = urlparse(self.base_url)
             host = parsed.hostname or "127.0.0.1"
             port = parsed.port or 11434
-            with socket.create_connection((host, port), timeout=0.25):
+            with socket.create_connection((host, port), timeout=2.5):
                 QwenLLMClient._cached_available = True
                 QwenLLMClient._last_check_time = now
                 return True
@@ -130,7 +130,7 @@ class QwenLLMClient:
             QwenLLMClient._last_check_time = now
             return False
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, timeout: float = 25.0) -> Optional[str]:
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, timeout: float = 35.0) -> Optional[str]:
         """Call Ollama /api/generate with temperature 0.2 and strict timeout."""
         if not self.is_available():
             return None
@@ -143,7 +143,7 @@ class QwenLLMClient:
             "options": {
                 "temperature": 0.3,
                 "top_p": 0.85,
-                "num_predict": 180
+                "num_predict": 220
             }
         }
         if system_prompt:
@@ -429,7 +429,7 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
         user_prompt = f"Patient Question: {question}\n\nPlease provide a clear, helpful, grounded explanation adhering to the medical guardrails."
 
         try:
-            qwen_response = client.generate(user_prompt, system_prompt=system_prompt, timeout=8.0)
+            qwen_response = client.generate(user_prompt, system_prompt=system_prompt, timeout=35.0)
         except Exception as e:
             logger.info("Qwen generation error: %s", e)
             qwen_response = None

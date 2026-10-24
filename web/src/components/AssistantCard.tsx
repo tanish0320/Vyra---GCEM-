@@ -174,7 +174,7 @@ export function AssistantCard({
     const timer = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, 25_000);
+    }, 50_000);
     pending.current = { controller, timer };
     setQuestion(text);
     setError("");
