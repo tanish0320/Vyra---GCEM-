@@ -143,7 +143,7 @@ class QwenLLMClient:
             "options": {
                 "temperature": 0.3,
                 "top_p": 0.85,
-                "num_predict": 220
+                "num_predict": 350
             }
         }
         if system_prompt:
@@ -213,6 +213,32 @@ class DeterministicMedicalExplainer:
             f"The palpebral conjunctiva and nail bed contain dense, superficial capillary loops without heavy keratinization. "
             f"In healthy patients, oxygenated hemoglobin reflects strongly in the red spectral band (higher $a^*$ chromophore and $EI > 45$). "
             f"Your scan reveals reduced capillary hemoglobin reflectance (microvascular pallor), which strongly correlates with low systemic red blood cell density."
+        )
+        return out + MANDATORY_DISCLAIMER_EN
+
+    @staticmethod
+    def explain_clinician_discussion(bundle: Dict[str, Any], language: str = "en") -> str:
+        mod = "Fingernail Bed" if bundle.get("modality") == "fingernail" else "Eye Conjunctiva"
+        prob = bundle.get("anemic_probability_pct", 0.0)
+        status = bundle.get("prediction", "Unknown")
+        hb_str = f"with an optical Hb estimate of {bundle['hb_estimate_g_dl']} g/dL" if bundle.get("hb_estimate_g_dl") else "optical screening indicator"
+
+        if language == "hi":
+            out = (
+                f"📋 **डॉक्टर / चिकित्सक से चर्चा करने के लिए मुख्य बिंदु:**\n\n"
+                f"1. **कन्फर्मेटरी रक्त परीक्षण (CBC):** डॉक्टर से वेनस कम्पलीट ब्लड काउंट (CBC) और सीरम फेरिटिन परीक्षण करवाने का अनुरोध करें।\n"
+                f"2. **स्क्रीनिंग परिणाम साझा करें:** बताएं कि {mod} की ऑप्टिकल स्क्रीनिंग में {prob:.1f}% एनीमिया संभावना ({status}, {hb_str}) दर्ज की गई है।\n"
+                f"3. **लक्षणों की समीक्षा:** किसी भी प्रकार की थकान, चक्कर आना, सांस फूलना या कमजोरी के लक्षणों पर चर्चा करें।\n"
+                f"4. **आहार एवं पोषण:** अपने दैनिक आयरन और विटामिन सी युक्त आहार के बारे में परामर्श लें।"
+            )
+            return out + MANDATORY_DISCLAIMER_HI
+
+        out = (
+            f"📋 **Key Topics to Discuss with Your Clinician:**\n\n"
+            f"1. **Confirmatory Blood Panel (CBC):** Request a venous Complete Blood Count (CBC) and serum ferritin test to definitively assess your hemoglobin and iron stores.\n"
+            f"2. **Share This Optical Screening:** Inform your doctor that your non-invasive {mod} scan showed a **{prob:.1f}%** probability ({status}, {hb_str}).\n"
+            f"3. **Review Clinical Symptoms:** Mention any ongoing fatigue, lightheadedness, exertional breathlessness, or unusual dietary habits.\n"
+            f"4. **Personalized Iron & Nutrition Plan:** Inquire whether supportive dietary adjustments (iron-rich foods paired with Vitamin C) or routine follow-up is recommended."
         )
         return out + MANDATORY_DISCLAIMER_EN
 
@@ -400,7 +426,8 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
     # 2. MATCH STANDARD QUERY CHIPS
     q_norm = question.strip().lower()
     is_image_query = any(k in q_norm for k in ["image", "photo", "scan", "gradcam", "show", "फोटो", "स्कैन", "चित्र"])
-    is_causes_query = any(k in q_norm for k in ["cause", "why", "reason", "risk", "कारण", "क्यों"])
+    is_clinician_query = any(k in q_norm for k in ["clinician", "doctor", "discuss", "physician", "cbc", "consult", "डॉक्टर", "चर्चा", "सलाह", "बात"])
+    is_causes_query = any(k in q_norm for k in ["cause", "why", "reason", "कारण", "क्यों"])
     is_symptoms_query = any(k in q_norm for k in ["symptom", "sign", "feel", "monitor", "लक्षण", "संकेत"])
 
     # 3. ATTEMPT LOCAL QWEN 2.5
@@ -411,19 +438,14 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
         system_prompt = (
             "You are Dr. VYRA, an empathetic, hospital-grade AI Explainable Medical Assistant. "
             "Your objective is to educate the patient about their anemia screening results using clear, compassionate language.\n\n"
-            "If the user greets you (e.g. 'hi', 'hello', 'hey'), warmly introduce yourself as Dr. VYRA, summarize their current optical screening probability, and invite them to ask about their image features, symptoms, or diet.\n\n"
-            "STRICT CLINICAL GUARDRAILS (YOU MUST FOLLOW THESE RULES WITHOUT EXCEPTION):\n"
-            "1. STRICT FACT GROUNDING: Ground your response strictly on the patient's verified scan facts below. Do NOT invent conflicting numbers.\n"
-            f"   - Anatomical Modality: {bundle['modality']}\n"
-            f"   - Predicted Classification: {bundle['prediction']}\n"
-            f"   - Posterior Anemia Probability: {bundle['anemic_probability_pct']}%\n"
-            f"   - Estimated Hemoglobin: {bundle['hb_estimate_g_dl'] if bundle['hb_estimate_g_dl'] else 'Not calibrated / optical estimate'}\n"
-            f"   - Biophysical Erythema Index (Perfusion): {bundle['erythema_index']} ({bundle['perfusion_status']})\n"
-            f"   - CIE a* Microvascular Chromophore: {bundle['a_star']}\n"
-            "2. PROHIBITION OF PRESCRIPTIONS: NEVER prescribe prescription medicines, dosages, intravenous iron sucrose, or blood transfusion orders. Only recommend safe supportive dietary iron (leafy greens, dates, lentils) and Vitamin C.\n"
-            "3. NO DEFINITIVE DIAGNOSIS: Explain that this is a non-invasive optical screening test, not a definitive hospital diagnosis. Advise consulting a doctor for a CBC.\n"
-            f"4. LANGUAGE: Answer fluently and respectfully in {'Hindi' if language == 'hi' else 'English'}.\n"
-            "5. STRUCTURED FORMATTING: Do NOT output raw double asterisks (**). Format your response cleanly using short paragraphs and clean bullet points (- ). Make it clean, professional, and easy to read."
+            "Patient Facts:\n"
+            f"- Modality: {bundle['modality']}, Prediction: {bundle['prediction']}, Probability: {bundle['anemic_probability_pct']}%, Hb: {bundle['hb_estimate_g_dl'] or 'Optical estimate'}\n\n"
+            "STRICT CLINICAL INSTRUCTIONS:\n"
+            "1. DIRECT ANSWER: Address the patient's specific question directly in the very first sentence. Do NOT regurgitate the whole technical data table unless explicitly asked.\n"
+            "2. NO PRESCRIPTIONS: Never prescribe pharmaceuticals, iron injections, or dosage amounts. Recommend balanced diet (leafy greens, lentils, dates) and Vitamin C.\n"
+            "3. NO DEFINITIVE DIAGNOSIS: Emphasize that optical screening guides clinical triage, not a definitive hospital diagnosis; recommend CBC confirmation.\n"
+            "4. COMPLETION: Answer concisely in 2 to 4 clean bullet points. Always finish your thoughts completely before stopping.\n"
+            f"5. LANGUAGE: Answer in {'Hindi' if language == 'hi' else 'English'}."
         )
 
         user_prompt = f"Patient Question: {question}\n\nPlease provide a clear, helpful, grounded explanation adhering to the medical guardrails."
@@ -446,7 +468,9 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
         }
 
     # 4. DETERMINISTIC CLINICAL FALLBACK
-    if is_image_query:
+    if is_clinician_query:
+        text = DeterministicMedicalExplainer.explain_clinician_discussion(bundle, language=language)
+    elif is_image_query:
         text = DeterministicMedicalExplainer.explain_image_findings(bundle, language=language)
     elif is_causes_query:
         text = DeterministicMedicalExplainer.explain_causes(bundle, language=language)
