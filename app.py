@@ -28,9 +28,11 @@ ScanRecord = getattr(_p3_app, "Scan", None)
 DEFAULT_CLINICAL_ACCURACY = 92.4
 
 # Ensure app module refers directly to canonical person3_app.app
+sys.modules["app"] = _p3_app
 sys.modules[__name__] = _p3_app
 
 if __name__ == "__main__":
+    _p3_app.eager_load_predictor()
     port = int(os.getenv("PORT", "5000"))
     debug = os.getenv("FLASK_DEBUG", "0").lower() in {"1", "true", "yes"}
     app.run(host="0.0.0.0", port=port, debug=debug)

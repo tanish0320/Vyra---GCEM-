@@ -130,7 +130,7 @@ class QwenLLMClient:
             QwenLLMClient._last_check_time = now
             return False
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None, timeout: float = 8.0) -> Optional[str]:
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, timeout: float = 25.0) -> Optional[str]:
         """Call Ollama /api/generate with temperature 0.2 and strict timeout."""
         if not self.is_available():
             return None

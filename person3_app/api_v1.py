@@ -206,8 +206,13 @@ def system_status():
     """Report backend readiness, models, limits, and capabilities."""
     from service_adapter import inspect_runtime_readiness
     from roi_detector import _find_yunet_model_path
+    from person3_app.app import predictor_loaded, eager_load_predictor, _predictor_load_error
 
-    readiness = inspect_runtime_readiness()
+    eager_load_predictor()
+    readiness = inspect_runtime_readiness(
+        predictor_loaded=predictor_loaded(),
+        predictor_load_error=_predictor_load_error,
+    )
     detector_avail = _find_yunet_model_path() is not None
     is_ready = bool(readiness.get("model_ready", False) or readiness.get("ready", False))
 
@@ -296,7 +301,7 @@ def evidence():
 @api_v1_bp.route("/analytics", methods=["GET"])
 def analytics():
     """Derive aggregate metrics from active patient screening records."""
-    from app import Scan
+    from person3_app.app import Scan
 
     active_scans = Scan.query.filter(Scan.deleted_at.is_(None)).all()
     total = len(active_scans)
@@ -355,7 +360,7 @@ def analytics():
 @api_v1_bp.route("/jobs", methods=["POST"])
 def create_job():
     """Accept multipart upload, run tissue detection, and queue job for user ROI review."""
-    from app import save_uploaded_file
+    from person3_app.app import save_uploaded_file
 
     idempotency_key = request.headers.get("Idempotency-Key")
     if idempotency_key:
@@ -529,7 +534,7 @@ def get_job(job_id: str):
 @api_v1_bp.route("/jobs/<job_id>/confirm", methods=["POST"])
 def confirm_job(job_id: str):
     """Confirm tissue bounding box, run model inference, and persist final screening result."""
-    from app import _predictor, eager_load_predictor, run_vyra_predict, create_scan_record
+    from person3_app.app import _predictor, eager_load_predictor, run_vyra_predict, create_scan_record
 
     job = job_store.get_job(job_id)
     if not job:
@@ -676,7 +681,7 @@ def cancel_job(job_id: str):
 @api_v1_bp.route("/scans", methods=["GET"])
 def list_scans():
     """List all active (non-archived) screening records."""
-    from app import Scan
+    from person3_app.app import Scan
 
     active_scans = (
         Scan.query.filter(Scan.deleted_at.is_(None))
@@ -690,7 +695,7 @@ def list_scans():
 @api_v1_bp.route("/scans/<scan_id>", methods=["GET"])
 def get_scan(scan_id: str):
     """Retrieve details for a single active screening record."""
-    from app import Scan
+    from person3_app.app import Scan
 
     try:
         numeric_id = int(scan_id)
@@ -707,7 +712,7 @@ def get_scan(scan_id: str):
 @api_v1_bp.route("/scans/<scan_id>", methods=["DELETE"])
 def delete_scan(scan_id: str):
     """Soft-delete/archive a screening record from active history."""
-    from app import db, Scan
+    from person3_app.app import db, Scan
 
     try:
         numeric_id = int(scan_id)
@@ -726,7 +731,7 @@ def delete_scan(scan_id: str):
 @api_v1_bp.route("/scans/<scan_id>/report.pdf", methods=["GET"])
 def download_scan_pdf(scan_id: str):
     """Download official clinical screening PDF slip."""
-    from app import Scan
+    from person3_app.app import Scan
     from pdf_report import generate_pdf_report
 
     try:
@@ -750,7 +755,7 @@ def download_scan_pdf(scan_id: str):
 @api_v1_bp.route("/scans.csv", methods=["GET"])
 def export_scans_csv():
     """Export active screening history as CSV."""
-    from app import Scan
+    from person3_app.app import Scan
 
     active_scans = (
         Scan.query.filter(Scan.deleted_at.is_(None))
@@ -869,7 +874,7 @@ def research_overview():
 @api_v1_bp.route("/explain/<int:scan_id>", methods=["POST"])
 def explain_scan(scan_id: int):
     """Explainable AI endpoint powered by Qwen 2.5 with MediAssist clinical guardrails."""
-    from app import Scan
+    from person3_app.app import Scan
     from explainable_ai import explain_scan_findings
 
     record = Scan.query.filter(Scan.id == scan_id, Scan.deleted_at.is_(None)).first()
