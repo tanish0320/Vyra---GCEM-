@@ -45,10 +45,10 @@ export function Header() {
             className={cn("main-nav", open && "nav-open")}
             aria-label="Main navigation"
           >
-            <NavLink to="/anatomy">Anatomy</NavLink>
-            <NavLink to="/studio">Screening</NavLink>
-            <NavLink to="/history">History</NavLink>
-            <NavLink to="/evidence">Evidence</NavLink>
+            <NavLink to="/anatomy" className="cursor-target" data-cursor-label="Anatomy Atlas">Anatomy</NavLink>
+            <NavLink to="/studio" className="cursor-target" data-cursor-label="Screening Studio">Screening</NavLink>
+            <NavLink to="/history" className="cursor-target" data-cursor-label="Screening Records">History</NavLink>
+            <NavLink to="/evidence" className="cursor-target" data-cursor-label="Clinical Evidence">Evidence</NavLink>
             <details
               className="more-navigation"
               ref={more}

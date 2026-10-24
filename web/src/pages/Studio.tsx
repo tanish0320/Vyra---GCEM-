@@ -862,7 +862,7 @@ export function Studio() {
             <Button
               type="submit"
               size="lg"
-              className="intake-submit"
+              className="intake-submit cursor-target" data-cursor-label="Proceed to Region Review"
               disabled={!canUpload}
             >
               {busy ? (

@@ -356,6 +356,8 @@ export function AssistantCard({
           <button
             type="button"
             key={chip}
+            className="cursor-target"
+            data-cursor-label="Ask Question"
             disabled={!enabled || busy}
             onClick={() => void send(chip)}
           >
@@ -385,6 +387,8 @@ export function AssistantCard({
           <Button
             type="submit"
             id="assistantSendBtn"
+            className="cursor-target"
+            data-cursor-label="Ask Dr. VYRA"
             disabled={!enabled || busy || !question.trim()}
           >
             <Send aria-hidden="true" size={17} />

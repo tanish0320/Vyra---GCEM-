@@ -342,6 +342,8 @@ export function ScanResult({ scan }: { scan: Scan }) {
                 <button
                   type="button"
                   id="btnModeSplit"
+                  className="cursor-target"
+                  data-cursor-label="Split View"
                   aria-pressed={attentionMode === "split"}
                   onClick={() => {
                     setAttentionMode("split");
@@ -353,6 +355,8 @@ export function ScanResult({ scan }: { scan: Scan }) {
                 <button
                   type="button"
                   id="btnModeBlend"
+                  className="cursor-target"
+                  data-cursor-label="Blend View"
                   aria-pressed={attentionMode === "blend"}
                   onClick={() => {
                     setAttentionMode("blend");
@@ -364,6 +368,8 @@ export function ScanResult({ scan }: { scan: Scan }) {
                 <button
                   type="button"
                   id="btnModeFlip"
+                  className="cursor-target"
+                  data-cursor-label="3D Flip Card"
                   aria-pressed={attentionMode === "flip"}
                   onClick={() => {
                     setAttentionMode("flip");
@@ -375,7 +381,8 @@ export function ScanResult({ scan }: { scan: Scan }) {
               {attentionMode === "flip" ? (
                 <div
                   id="explainabilityViewer"
-                  className="flip-card-wrapper"
+                  className="flip-card-wrapper cursor-target"
+                  data-cursor-label="Click or Drag to Flip"
                   data-mode="flip"
                 >
                   <FlipCard
@@ -538,7 +545,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
       />
       <div className="result-actions">
         <Button asChild>
-          <a id="downloadPdfButton" href={reportUrl(scan)} download>
+          <a id="downloadPdfButton" href={reportUrl(scan)} download className="cursor-target" data-cursor-label="Download PDF">
             <Download data-icon="inline-start" />
             Download PDF
           </a>
@@ -559,7 +566,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
             View history
           </Link>
         </Button>
-        <Button variant="outline" onClick={() => window.print()}>
+        <Button className="cursor-target" data-cursor-label="Print Report" variant="outline" onClick={() => window.print()}>
           <Printer data-icon="inline-start" />
           Print
         </Button>

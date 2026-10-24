@@ -56,10 +56,10 @@ export function Home() {
             screening, then follow your image through the process.
           </p>
           <ClickFeedback className="hero-ctas">
-            <Button size="lg" asChild>
+            <Button size="lg" asChild className="cursor-target" data-cursor-label="Explore Anatomy">
               <Link to="/anatomy">Explore anatomy</Link>
             </Button>
-            <Link className="text-link" to="/studio">
+            <Link className="text-link cursor-target" data-cursor-label="Start Screening" to="/studio">
               Start screening <ArrowRight size={18} />
             </Link>
           </ClickFeedback>

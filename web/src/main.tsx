@@ -11,6 +11,7 @@ import { SessionProvider } from "./context";
 import { Header, Footer, RouteBehavior } from "./components/Layout";
 import { Studio } from "./pages/Studio";
 import { PageTransition } from "./components/Motion";
+import TargetCursor from "./components/TargetCursor";
 import "./styles.css";
 const Home = lazy(() =>
   import("./pages/Home").then((m) => ({ default: m.Home })),
@@ -39,6 +40,16 @@ const About = lazy(() =>
 function App() {
   return (
     <>
+      <TargetCursor
+        cursorColor="#026e6d"
+        cursorColorOnTarget="#026e6d"
+        spinDuration={2}
+        hideDefaultCursor={true}
+        parallaxOn={true}
+        blendMode="normal"
+        hoverDuration={0.2}
+        showLabel={true}
+      />
       <RouteBehavior />
       <Header />
       <main id="main" tabIndex={-1}>

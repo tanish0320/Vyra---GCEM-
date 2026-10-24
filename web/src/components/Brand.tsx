@@ -41,7 +41,8 @@ export function Brand({ light = false }: { light?: boolean }) {
   return (
     <Link
       to="/"
-      className={`brand${light ? " brand-light" : ""}`}
+      className={`brand${light ? " brand-light" : ""} cursor-target`}
+      data-cursor-label="VYRA Home"
       aria-label="Vyra home"
     >
       <BrandMark />
