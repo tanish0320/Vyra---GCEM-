@@ -35,17 +35,28 @@ class PreprocessingResult:
     quality_warnings: List[str] = field(default_factory=list)
 
 
-def grey_world_white_balance(image_rgb: np.ndarray) -> np.ndarray:
-    """Apply Grey-World white balance assumption to neutralize illumination color casts."""
+def grey_world_white_balance(image_rgb: np.ndarray, max_gain_deviation: float = 0.15) -> np.ndarray:
+    """Apply Grey-World white balance assumption to neutralize illumination color casts.
+    
+    Channel gains are clamped to [1 - max_gain_deviation, 1 + max_gain_deviation] to prevent
+    destructive bleaching of biological tissue erythema (pink nail beds and conjunctiva)
+    into achromatic gray.
+    """
     img_float = image_rgb.astype(np.float32)
     mean_r = np.mean(img_float[:, :, 0]) + 1e-6
     mean_g = np.mean(img_float[:, :, 1]) + 1e-6
     mean_b = np.mean(img_float[:, :, 2]) + 1e-6
     mean_gray = (mean_r + mean_g + mean_b) / 3.0
 
-    img_float[:, :, 0] = np.clip(img_float[:, :, 0] * (mean_gray / mean_r), 0, 255)
-    img_float[:, :, 1] = np.clip(img_float[:, :, 1] * (mean_gray / mean_g), 0, 255)
-    img_float[:, :, 2] = np.clip(img_float[:, :, 2] * (mean_gray / mean_b), 0, 255)
+    min_g = max(0.5, 1.0 - max_gain_deviation)
+    max_g = min(1.8, 1.0 + max_gain_deviation)
+    gain_r = float(np.clip(mean_gray / mean_r, min_g, max_g))
+    gain_g = float(np.clip(mean_gray / mean_g, min_g, max_g))
+    gain_b = float(np.clip(mean_gray / mean_b, min_g, max_g))
+
+    img_float[:, :, 0] = np.clip(img_float[:, :, 0] * gain_r, 0, 255)
+    img_float[:, :, 1] = np.clip(img_float[:, :, 1] * gain_g, 0, 255)
+    img_float[:, :, 2] = np.clip(img_float[:, :, 2] * gain_b, 0, 255)
 
     return img_float.astype(np.uint8)
 

@@ -585,6 +585,7 @@ def confirm_job(job_id: str):
             patient_payload=patient_payload,
             fallback_predictor=_predictor,
             use_mock=False,
+            roi_bbox=(0, 0, cropped_primary.width, cropped_primary.height),
         )
     except Exception as exc:
         job_store.update_job(job_id, {"status": "failed", "error": {"code": "INFERENCE_FAILED", "message": str(exc)}})
@@ -615,6 +616,7 @@ def confirm_job(job_id: str):
                     patient_payload=patient_payload,
                     fallback_predictor=_predictor,
                     use_mock=False,
+                    roi_bbox=(0, 0, sec_cropped.width, sec_cropped.height),
                 )
 
                 p1 = float(adapter_output.anemic_probability)

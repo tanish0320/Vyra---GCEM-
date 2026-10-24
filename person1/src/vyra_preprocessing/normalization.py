@@ -80,8 +80,11 @@ def grey_world_white_balance(image_rgb: np.ndarray, *, roi_mask: np.ndarray | No
             raise InputError("EMPTY_ROI", "White balance needs tissue pixels")
         means = [np.mean(img_float[:, :, i][valid]) + 1e-6 for i in range(3)]
     gray = sum(means) / 3.0
+    min_g = max(0.5, 1.0 - 0.15)
+    max_g = min(1.8, 1.0 + 0.15)
     for i, mean in enumerate(means):
-        img_float[:, :, i] = np.clip(img_float[:, :, i] * (gray / mean), 0, 255)
+        gain = float(np.clip(gray / mean, min_g, max_g))
+        img_float[:, :, i] = np.clip(img_float[:, :, i] * gain, 0, 255)
     return img_float.astype(np.uint8)
 
 
