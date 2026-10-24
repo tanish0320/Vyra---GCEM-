@@ -777,3 +777,83 @@
   border-color: #006c67;
   font-weight: 600;
 }
+
+/* 3D FlipCard Integration */
+.flip-card-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0 16px;
+  width: 100%;
+}
+
+.flip-card-face-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #18181b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.flip-card-face-content img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.flip-face-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: rgba(24, 24, 27, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 7px 12px;
+  border-radius: 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fafafa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.flip-face-badge.badge-accent {
+  border-color: rgba(0, 108, 103, 0.5);
+  background: rgba(0, 48, 45, 0.9);
+  color: #2dd4bf;
+}
+
+.flip-face-badge .badge-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: #a1a1aa;
+}
+
+.flip-face-badge.badge-accent .badge-sub {
+  color: #99f6e4;
+}
+
+.flip-card-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #166534;
+  text-align: center;
+}

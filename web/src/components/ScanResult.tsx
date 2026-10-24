@@ -15,6 +15,7 @@ import { api } from "../services/api";
 import { useSession } from "../context";
 import { Button } from "./ui/button";
 import { AssistantCard } from "./AssistantCard";
+import FlipCard from "./FlipCard";
 import { ColorimetryResults, FusionResults } from "./IntegrationResults";
 import {
   Dialog,
@@ -75,9 +76,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
     null,
   );
   const [comparison, setComparison] = useState(50);
-  const [attentionMode, setAttentionMode] = useState<"split" | "blend">(
-    "split",
-  );
+  const [attentionMode, setAttentionMode] = useState<"split" | "blend" | "flip">("split");
   const [attentionSite, setAttentionSite] = useState<"primary" | "secondary">("primary");
   const hasDualScan = Boolean(
     scan.multimodal_fusion?.active &&
@@ -362,54 +361,117 @@ export function ScanResult({ scan }: { scan: Scan }) {
                 >
                   Blend view
                 </button>
+                <button
+                  type="button"
+                  id="btnModeFlip"
+                  aria-pressed={attentionMode === "flip"}
+                  onClick={() => {
+                    setAttentionMode("flip");
+                  }}
+                >
+                  3D Flip card
+                </button>
               </div>
-              <div
-                id="explainabilityViewer"
-                className="attention-compare"
-                data-mode={attentionMode}
-              >
-                <img
-                  src={currentNormalized}
-                  alt="Normalized crop for attention comparison"
-                />
-                <img
-                  src={currentAttentionUrl}
-                  alt={
-                    rawHeatmap
-                      ? "Raw Grad-CAM heatmap"
-                      : "Grad-CAM attention overlay"
-                  }
-                  style={
-                    attentionMode === "split"
-                      ? { clipPath: "inset(0 0 0 " + comparison + "%)" }
-                      : { opacity: comparison / 100 }
-                  }
-                />
-                {attentionMode === "split" && (
-                  <span
-                    className="comparison-line"
-                    style={{ left: comparison + "%" }}
+              {attentionMode === "flip" ? (
+                <div
+                  id="explainabilityViewer"
+                  className="flip-card-wrapper"
+                  data-mode="flip"
+                >
+                  <FlipCard
+                    width={480}
+                    height={320}
+                    radius={16}
+                    background="#18181b"
+                    color="#f4f4f5"
+                    shadowColor="#000000"
+                    shadowOpacity={0.4}
+                    tilt={true}
+                    tiltMax={12}
+                    glare={true}
+                    glareOpacity={0.25}
+                    hoverScale={1.02}
+                    front={
+                      <div className="flip-card-face-content">
+                        <img
+                          src={currentNormalized}
+                          alt={`Normalized ${attentionSite === "primary" ? primaryModalityName : secondaryModalityName} crop`}
+                        />
+                        <div className="flip-face-badge">
+                          <span>Normalized Input</span>
+                          <span className="badge-sub">{attentionSite === "primary" ? primaryModalityName : secondaryModalityName}</span>
+                        </div>
+                      </div>
+                    }
+                    back={
+                      <div className="flip-card-face-content">
+                        <img
+                          src={currentAttentionUrl}
+                          alt={`Grad-CAM attention map for ${attentionSite === "primary" ? primaryModalityName : secondaryModalityName}`}
+                        />
+                        <div className="flip-face-badge badge-accent">
+                          <span>Grad-CAM Attention</span>
+                          <span className="badge-sub">{rawHeatmap ? "Raw Heatmap" : "Microvascular Saliency"}</span>
+                        </div>
+                      </div>
+                    }
                   />
-                )}
-              </div>
-              <label className="attention-control">
-                {attentionMode === "split"
-                  ? `Compare normalized input and Grad-CAM (${attentionSite === "primary" ? primaryModalityName : secondaryModalityName})`
-                  : rawHeatmap
-                    ? "Heatmap opacity"
-                    : "Precomposited overlay visibility"}
-                <input
-                  id="gradcamSlider"
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={comparison}
-                  onChange={(event) =>
-                    setComparison(Number(event.target.value))
-                  }
-                  aria-label="Attention comparison"
-                />
-              </label>
+                </div>
+              ) : (
+                <div
+                  id="explainabilityViewer"
+                  className="attention-compare"
+                  data-mode={attentionMode}
+                >
+                  <img
+                    src={currentNormalized}
+                    alt="Normalized crop for attention comparison"
+                  />
+                  <img
+                    src={currentAttentionUrl}
+                    alt={
+                      rawHeatmap
+                        ? "Raw Grad-CAM heatmap"
+                        : "Grad-CAM attention overlay"
+                    }
+                    style={
+                      attentionMode === "split"
+                        ? { clipPath: "inset(0 0 0 " + comparison + "%)" }
+                        : { opacity: comparison / 100 }
+                    }
+                  />
+                  {attentionMode === "split" && (
+                    <span
+                      className="comparison-line"
+                      style={{ left: comparison + "%" }}
+                    />
+                  )}
+                </div>
+              )}
+              {attentionMode === "flip" ? (
+                <div className="flip-card-hint">
+                  <span>✨ <strong>3D Flip Card:</strong> Click to flip or drag/flick horizontally to turn. Hover leans toward cursor with dynamic glare.</span>
+                </div>
+              ) : (
+                <label className="attention-control">
+                  {attentionMode === "split"
+                    ? `Compare normalized input and Grad-CAM (${attentionSite === "primary" ? primaryModalityName : secondaryModalityName})`
+                    : rawHeatmap
+                      ? "Heatmap opacity"
+                      : "Precomposited overlay visibility"}
+                  <input
+                    id="gradcamSlider"
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={comparison}
+                    onChange={(event) =>
+                      setComparison(Number(event.target.value))
+                    }
+                    aria-label="Attention comparison"
+                  />
+                </label>
+              )}
               <div className="attention-labels">
                 <span>Normalized input ({attentionSite === "primary" ? primaryModalityName : secondaryModalityName})</span>
                 <span>{rawHeatmap ? "Raw heatmap" : "Grad-CAM overlay"}</span>
