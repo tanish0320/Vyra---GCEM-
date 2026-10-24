@@ -78,6 +78,24 @@ export function ScanResult({ scan }: { scan: Scan }) {
   const [attentionMode, setAttentionMode] = useState<"split" | "blend">(
     "split",
   );
+  const [attentionSite, setAttentionSite] = useState<"primary" | "secondary">("primary");
+  const hasDualScan = Boolean(
+    scan.multimodal_fusion?.active &&
+      (scan.multimodal_fusion?.secondary_artifacts || scan.multimodal_fusion?.secondary_image_url)
+  );
+  const primaryModalityName = scan.multimodal_fusion?.primary_modality || (scan.modality === "conjunctiva" ? "Eye Conjunctiva" : "Fingernail Bed");
+  const secondaryModalityName = scan.multimodal_fusion?.secondary_modality || (scan.modality === "conjunctiva" ? "Fingernail Bed" : "Eye Conjunctiva");
+  const currentArtifacts = (hasDualScan && attentionSite === "secondary" && scan.multimodal_fusion?.secondary_artifacts)
+    ? {
+        oriented: scan.multimodal_fusion.secondary_artifacts.oriented || scan.artifacts.oriented,
+        roi: scan.multimodal_fusion.secondary_artifacts.roi || scan.artifacts.roi,
+        normalized: scan.multimodal_fusion.secondary_artifacts.normalized || scan.artifacts.normalized,
+        gradcam: scan.multimodal_fusion.secondary_artifacts.gradcam || null,
+        heatmap: scan.multimodal_fusion.secondary_artifacts.heatmap || null,
+      }
+    : scan.artifacts;
+  const currentAttentionUrl = currentArtifacts.heatmap || currentArtifacts.gradcam;
+  const currentNormalized = currentArtifacts.normalized;
   const previewTrigger = useRef<HTMLButtonElement | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const { reset, job, system } = useSession();
@@ -86,6 +104,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
     resultHeading.current?.focus();
     setComparison(50);
     setAttentionMode("split");
+    setAttentionSite("primary");
     setPreview(null);
   }, [scan.id]);
   const positive = scan.probability_anemia >= scan.threshold;
@@ -156,10 +175,28 @@ export function ScanResult({ scan }: { scan: Scan }) {
         <section className="result-panel">
           <span className="eyebrow">01 / ACQUISITION</span>
           <h2>Image & quality</h2>
-          {artifact("Oriented image", scan.artifacts.oriented, true)}
+          {hasDualScan && (
+            <div className="attention-modes" role="group" aria-label="Select tissue for acquisition" style={{ marginBottom: "14px" }}>
+              <button
+                type="button"
+                aria-pressed={attentionSite === "primary"}
+                onClick={() => setAttentionSite("primary")}
+              >
+                {primaryModalityName}
+              </button>
+              <button
+                type="button"
+                aria-pressed={attentionSite === "secondary"}
+                onClick={() => setAttentionSite("secondary")}
+              >
+                {secondaryModalityName}
+              </button>
+            </div>
+          )}
+          {artifact("Oriented image", currentArtifacts.oriented, true)}
           <div className="result-crops">
-            {artifact("Confirmed region", scan.artifacts.roi)}
-            {artifact("Normalized input", scan.artifacts.normalized)}
+            {artifact("Confirmed region", currentArtifacts.roi)}
+            {artifact("Normalized input", currentArtifacts.normalized)}
           </div>
           <div className="quality-summary">
             <h3>Image quality notes</h3>
@@ -270,7 +307,33 @@ export function ScanResult({ scan }: { scan: Scan }) {
             Explore the areas that influenced this prediction. Both views show
             the same normalized tissue crop.
           </p>
-          {attentionUrl ? (
+          {hasDualScan && (
+            <div className="attention-modes" role="group" aria-label="Select tissue for attention" style={{ marginBottom: "14px" }}>
+              <button
+                type="button"
+                id="btnSitePrimary"
+                aria-pressed={attentionSite === "primary"}
+                onClick={() => {
+                  setAttentionSite("primary");
+                  setComparison(50);
+                }}
+              >
+                {primaryModalityName}
+              </button>
+              <button
+                type="button"
+                id="btnSiteSecondary"
+                aria-pressed={attentionSite === "secondary"}
+                onClick={() => {
+                  setAttentionSite("secondary");
+                  setComparison(50);
+                }}
+              >
+                {secondaryModalityName}
+              </button>
+            </div>
+          )}
+          {currentAttentionUrl ? (
             <>
               <div
                 className="attention-modes"
@@ -306,11 +369,11 @@ export function ScanResult({ scan }: { scan: Scan }) {
                 data-mode={attentionMode}
               >
                 <img
-                  src={scan.artifacts.normalized}
+                  src={currentNormalized}
                   alt="Normalized crop for attention comparison"
                 />
                 <img
-                  src={attentionUrl}
+                  src={currentAttentionUrl}
                   alt={
                     rawHeatmap
                       ? "Raw Grad-CAM heatmap"
@@ -331,7 +394,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
               </div>
               <label className="attention-control">
                 {attentionMode === "split"
-                  ? "Compare normalized input and Grad-CAM"
+                  ? `Compare normalized input and Grad-CAM (${attentionSite === "primary" ? primaryModalityName : secondaryModalityName})`
                   : rawHeatmap
                     ? "Heatmap opacity"
                     : "Precomposited overlay visibility"}
@@ -348,7 +411,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
                 />
               </label>
               <div className="attention-labels">
-                <span>Normalized input</span>
+                <span>Normalized input ({attentionSite === "primary" ? primaryModalityName : secondaryModalityName})</span>
                 <span>{rawHeatmap ? "Raw heatmap" : "Grad-CAM overlay"}</span>
               </div>
               <p className="attention-mode-note">
@@ -360,7 +423,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
           ) : (
             <div className="artifact-unavailable">
               <ImageOff size={24} />
-              <span>Attention map unavailable</span>
+              <span>Attention map unavailable for {attentionSite === "primary" ? primaryModalityName : secondaryModalityName}</span>
             </div>
           )}
           <p className="artifact-caption">

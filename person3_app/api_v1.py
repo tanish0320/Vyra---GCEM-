@@ -90,6 +90,13 @@ def serialize_scan(scan: Any, job_data: dict[str, Any] | None = None) -> dict[st
                     "agreement_level": str(raw_fusion.get("agreement_level", "High Cross-Site Agreement")),
                     "method": "weighted_average (0.55 eye, 0.45 nail)",
                     "secondary_error": None,
+                    "secondary_artifacts": raw_fusion.get("secondary_artifacts") or {
+                        "oriented": f"/media/uploads/{sec_img_fn}" if sec_img_fn else None,
+                        "roi": f"/media/uploads/{sec_img_fn}" if sec_img_fn else None,
+                        "normalized": f"/media/uploads/{sec_img_fn}" if sec_img_fn else None,
+                        "gradcam": None,
+                        "heatmap": None,
+                    },
                 }
         except Exception:
             pass
@@ -627,6 +634,12 @@ def confirm_job(job_id: str):
                     p_joint = round(0.55 * p2 + 0.45 * p1, 4)
                 concordance = round(max(0.0, 1.0 - abs(p1 - p2)) * 100, 1)
 
+                sec_gc_path = getattr(sec_output, "gradcam_path", None)
+                sec_norm_p = getattr(sec_output, "normalized_image_path", None)
+                sec_gradcam = f"/media/{sec_gc_path}" if sec_gc_path else None
+                sec_norm = f"/media/uploads/{sec_norm_p.name}" if (sec_norm_p and sec_norm_p.exists()) else f"/media/uploads/{sec_crop_path.name}"
+                sec_oriented = f"/media/uploads/{sec_crop_path.name}"
+
                 multimodal_data = {
                     "active": True,
                     "primary_modality": "Eye Conjunctiva" if job["modality"] == "conjunctiva" else "Fingernail Bed",
@@ -636,6 +649,13 @@ def confirm_job(job_id: str):
                     "secondary_prob": round(p2 * 100, 1),
                     "secondary_class": sec_output.predicted_class,
                     "secondary_image_filename": sec_filename,
+                    "secondary_artifacts": {
+                        "oriented": sec_oriented,
+                        "roi": sec_oriented,
+                        "normalized": sec_norm,
+                        "gradcam": sec_gradcam,
+                        "heatmap": None,
+                    },
                     "joint_probability": round(p_joint * 100, 1),
                     "concordance_pct": concordance,
                     "agreement_level": "High Cross-Site Agreement" if concordance >= 85.0 else ("Moderate Concordance" if concordance >= 70.0 else "Site Divergence Noted"),

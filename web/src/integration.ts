@@ -24,6 +24,13 @@ export interface MultimodalFusion {
   secondary_prob: number;
   secondary_class: string;
   secondary_image_url?: string | null;
+  secondary_artifacts?: {
+    oriented?: string | null;
+    roi?: string | null;
+    normalized?: string | null;
+    gradcam?: string | null;
+    heatmap?: string | null;
+  } | null;
   joint_probability: number;
   concordance_pct: number;
   agreement_level: string;

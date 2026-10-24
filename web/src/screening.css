@@ -750,3 +750,30 @@
     margin-top: 16px;
   }
 }
+
+.attention-modes {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.attention-modes button {
+  padding: 6px 14px;
+  font-size: var(--type-control);
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #d4deda;
+  background: #f8faf8;
+  color: #405458;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.attention-modes button:hover {
+  background: #edf3f0;
+  border-color: #006c67;
+}
+.attention-modes button[aria-pressed="true"] {
+  background: #006c67;
+  color: #ffffff;
+  border-color: #006c67;
+  font-weight: 600;
+}
