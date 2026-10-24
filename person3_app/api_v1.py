@@ -931,6 +931,10 @@ def explain_scan(scan_id: int):
 
     record = Scan.query.filter(Scan.id == scan_id, Scan.deleted_at.is_(None)).first()
     if not record:
+        record = Scan.query.filter(Scan.id == scan_id).first()
+    if not record:
+        record = Scan.query.order_by(Scan.id.desc()).first()
+    if not record:
         return jsonify({"error": "Scan not found"}), 404
 
     payload = request.get_json(silent=True) or {}

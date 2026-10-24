@@ -143,7 +143,7 @@ class QwenLLMClient:
             "options": {
                 "temperature": 0.3,
                 "top_p": 0.85,
-                "num_predict": 450
+                "num_predict": 180
             }
         }
         if system_prompt:
@@ -429,7 +429,7 @@ def explain_scan_findings(scan: Any, question: str, language: str = "en") -> Dic
         user_prompt = f"Patient Question: {question}\n\nPlease provide a clear, helpful, grounded explanation adhering to the medical guardrails."
 
         try:
-            qwen_response = client.generate(user_prompt, system_prompt=system_prompt, timeout=15.0)
+            qwen_response = client.generate(user_prompt, system_prompt=system_prompt, timeout=8.0)
         except Exception as e:
             logger.info("Qwen generation error: %s", e)
             qwen_response = None

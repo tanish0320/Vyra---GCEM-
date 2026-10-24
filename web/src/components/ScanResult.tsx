@@ -472,7 +472,7 @@ export function ScanResult({ scan }: { scan: Scan }) {
       <AssistantCard
         key={scan.id}
         scanId={scan.id}
-        enabled={system?.capabilities?.assistant === true}
+        enabled={system ? system.capabilities?.assistant !== false : true}
       />
       <div className="result-actions">
         <Button asChild>
